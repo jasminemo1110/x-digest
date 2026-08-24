@@ -139,6 +139,7 @@ It does not currently support automatic bookmark sync, full-timeline collection,
 - AI requests happen only after a user action and are sent directly to DeepSeek
 - Settings, saved records, and the API key remain in the current Chrome profile
 - Performance logs contain action names and timings, not post text or keys
+- Library and Wordbook each retain up to 1,000 records; X Digest warns at 950 records or 90% of Chrome's local storage quota so you can export a complete snapshot before older records are replaced
 
 Read the full [privacy policy](PRIVACY.md) and [security policy](SECURITY.md).
 

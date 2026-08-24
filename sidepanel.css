@@ -30,6 +30,7 @@ a { color: var(--accent-dark); }
 .tab-button.active { border-color: var(--accent); color: var(--text); }
 main { padding: 14px 16px 22px; }
 .notice { background: #fff3d6; border: 1px solid #e8ca7d; border-radius: 12px; font-size: 13px; line-height: 1.45; padding: 11px 13px; }
+.storage-notice { margin: 0 0 14px; }
 .empty-state { color: var(--muted); padding: 26px 8px; text-align: center; }
 #postCard { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; padding: 15px; }
 .post-meta, .result-heading, .card-controls, .view-heading { align-items: center; display: flex; justify-content: space-between; gap: 12px; }

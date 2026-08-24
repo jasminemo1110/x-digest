@@ -139,6 +139,7 @@ X Digest 不会读取你的 X 密码、登录令牌、官方书签、点赞、�
 - 只有用户主动操作后，相关 AI 请求才会直接发送给 DeepSeek
 - 设置、收藏记录和 API Key 保留在当前 Chrome Profile 中
 - 性能日志只记录操作名称和耗时，不记录推文文字或 Key
+- Library 和 Wordbook 各自最多保留 1,000 条记录；达到 950 条或 Chrome 本地存储空间使用 90% 时，X Digest 会提醒你及时导出完整快照，避免旧记录被替换
 
 详细内容请查看[隐私政策](PRIVACY.md)和[安全政策](SECURITY.md)。
 

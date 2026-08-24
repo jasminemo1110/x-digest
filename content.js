@@ -19,7 +19,11 @@ function statusIdentity(article) {
   const match = link?.getAttribute("href")?.match(/^\/(?:i\/web\/status\/|[^/]+\/status\/)(\d+)/);
   if (!match) return null;
   const path = link.getAttribute("href");
-  return { id: match[1], url: new URL(path, location.origin).href };
+  return {
+    id: match[1],
+    url: new URL(path, location.origin).href,
+    publishedAt: time?.getAttribute("datetime") || "",
+  };
 }
 
 function extractPost(article) {
@@ -37,7 +41,6 @@ function extractPost(article) {
     text: text.slice(0, 20000),
     authorName: userName?.querySelector("span")?.textContent?.trim()?.slice(0, 200) || "",
     handle: handle.slice(0, 100),
-    publishedAt: firstOwned(article, "time")?.getAttribute("datetime") || "",
     capturedAt: new Date().toISOString(),
   };
 }

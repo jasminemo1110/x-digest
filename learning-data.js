@@ -12,6 +12,7 @@
 
   const ENTRY_TYPES = new Set(["word", "phrase", "expression", "sentence"]);
   const ASSESSMENTS = new Set(["as_is", "corrected", "uncertain"]);
+  const X_EPOCH_MS = 1288834974657n;
 
   function cleanText(value, maxLength = LIMITS.shortText) {
     if (typeof value !== "string") return "";
@@ -22,6 +23,17 @@
     const cleaned = cleanText(value, maxLength);
     if (!cleaned) throw new Error(`AI response is missing ${field}.`);
     return cleaned;
+  }
+
+  function publishedAtFromStatusId(value) {
+    try {
+      const milliseconds = Number((BigInt(value) >> 22n) + X_EPOCH_MS);
+      if (!Number.isFinite(milliseconds)) return "";
+      const date = new Date(milliseconds);
+      return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+    } catch (_) {
+      return "";
+    }
   }
 
   function normalizePost(value = {}) {
@@ -46,7 +58,7 @@
       text,
       authorName: cleanText(value.authorName, 200),
       handle: cleanText(value.handle, 100),
-      publishedAt: cleanText(value.publishedAt, 100),
+      publishedAt: publishedAtFromStatusId(id) || cleanText(value.publishedAt, 100),
       capturedAt: cleanText(value.capturedAt, 100),
     };
   }
@@ -139,6 +151,15 @@
     return ENTRY_TYPES.has(normalized) ? normalized : inferEntryType(text);
   }
 
+  function normalizeLearningForm(value, type) {
+    const cleaned = cleanText(value, LIMITS.selectedText);
+    if (type !== "word") return cleaned;
+    const withoutSelectionPunctuation = cleaned
+      .replace(/^[\s"“”‘’([{]+/u, "")
+      .replace(/[\s"“”‘’)\]}.,!?;:。！？；：，]+$/u, "");
+    return withoutSelectionPunctuation || cleaned;
+  }
+
   function normalizeStoredExplanation(value = {}, fallbackSelection = "") {
     const rawSelectedText = cleanText(
       value.rawSelectedText || value.selectedText || fallbackSelection,
@@ -147,9 +168,11 @@
     const rawAssessment = cleanText(value.assessment, 30).toLowerCase();
     const assessment = ASSESSMENTS.has(rawAssessment) ? rawAssessment : "unassessed";
     const suppliedLearningForm = cleanText(value.learningForm || rawSelectedText, LIMITS.selectedText);
-    const learningForm = assessment === "unassessed"
+    const unnormalizedLearningForm = assessment === "unassessed"
       ? rawSelectedText || suppliedLearningForm
       : suppliedLearningForm;
+    const type = normalizeEntryType(value.type || value.entryType, unnormalizedLearningForm || rawSelectedText);
+    const learningForm = normalizeLearningForm(unnormalizedLearningForm, type);
     const defaultAssessment = {
       as_is: ["Correct and natural in this context.", "在当前语境中正确自然。"],
       corrected: ["A correction is recommended.", "建议修正后学习。"],
@@ -160,7 +183,7 @@
       rawSelectedText,
       selectedText: rawSelectedText,
       learningForm,
-      type: normalizeEntryType(value.type || value.entryType, learningForm || rawSelectedText),
+      type,
       assessment,
       assessmentEn: cleanText(value.assessmentEn, LIMITS.explanation) || defaultAssessment[0],
       assessmentZh: cleanText(value.assessmentZh, LIMITS.explanation) || defaultAssessment[1],
@@ -182,8 +205,9 @@
     const assessment = cleanText(value.assessment, 30).toLowerCase();
     if (!ASSESSMENTS.has(assessment)) throw new Error("AI response has an unsupported assessment.");
     const suppliedLearningForm = requiredText(value.learningForm, "learningForm", LIMITS.selectedText);
-    const learningForm = assessment === "corrected" ? suppliedLearningForm : rawSelectedText;
-    const type = normalizeEntryType(value.type || value.entryType, learningForm);
+    const unnormalizedLearningForm = assessment === "corrected" ? suppliedLearningForm : rawSelectedText;
+    const type = normalizeEntryType(value.type || value.entryType, unnormalizedLearningForm);
+    const learningForm = normalizeLearningForm(unnormalizedLearningForm, type);
     const pronunciation = cleanText(value.pronunciation, 200);
     if (type === "word" && !/^\/[^/\n]{1,100}\/$/.test(pronunciation)) {
       throw new Error("AI response is missing a valid IPA pronunciation.");
@@ -275,10 +299,36 @@
     return cleanText(value, LIMITS.explanation).replace(/\|/g, "\\|").replace(/\n/g, "<br>");
   }
 
+  function markdownTitle(value, maxLength = 100) {
+    const cleaned = cleanText(value, LIMITS.postText).split("\n")[0];
+    if (cleaned.length <= maxLength) return cleaned;
+    const clipped = cleaned.slice(0, maxLength - 1);
+    const lastSpace = clipped.lastIndexOf(" ");
+    const boundary = lastSpace >= Math.floor(maxLength * 0.6) ? lastSpace : clipped.length;
+    return `${clipped.slice(0, boundary).trimEnd()}…`;
+  }
+
+  function storageWarning(value = {}) {
+    const usedBytes = Number(value.usedBytes) || 0;
+    const quotaBytes = Number(value.quotaBytes) || 0;
+    const libraryCount = Math.max(0, Number(value.libraryCount) || 0);
+    const wordbookCount = Math.max(0, Number(value.wordbookCount) || 0);
+    if (quotaBytes > 0 && usedBytes / quotaBytes >= 0.9) {
+      const percentage = Math.min(100, Math.round((usedBytes / quotaBytes) * 100));
+      return `X Digest storage is ${percentage}% full. Export a complete snapshot soon to protect your learning records.`;
+    }
+    const nearLimits = [];
+    if (libraryCount >= 950) nearLimits.push(`Library has ${libraryCount} of ${LIMITS.entries} entries`);
+    if (wordbookCount >= 950) nearLimits.push(`Wordbook has ${wordbookCount} of ${LIMITS.entries} entries`);
+    return nearLimits.length
+      ? `${nearLimits.join("; ")}. Export a complete snapshot before older records are replaced.`
+      : "";
+  }
+
   function postToMarkdown(postValue) {
     const post = normalizePost(postValue);
     const rawPost = postValue && typeof postValue === "object" ? postValue : {};
-    const title = cleanText(post.text.split("\n")[0], 100) || `Post ${post.id}`;
+    const title = markdownTitle(post.text) || `Post ${post.id}`;
     const translation = cleanText(rawPost.translationZh, LIMITS.postText);
     const digest = rawPost.digest && typeof rawPost.digest === "object" ? validateDigestPayload(rawPost.digest) : null;
     const isExcerpt = rawPost.kind === "excerpt";
@@ -296,7 +346,11 @@
       "",
       post.text,
       ...(translation ? ["", "### 中文", "", translation] : []),
-      ...(digest ? ["", "### Digest", "", digest.summaryZh, ...(digest.toneZh ? ["", `- 语气：${digest.toneZh}`] : [])] : []),
+      ...(digest ? [
+        "", "### Digest", "", digest.summaryZh,
+        ...(digest.toneZh ? ["", `- 语气：${digest.toneZh}`] : []),
+        ...(digest.keyPointsZh.length ? ["", "#### Key Points · 要点", "", ...digest.keyPointsZh.map((point) => `- ${point}`)] : []),
+      ] : []),
     ].join("\n");
   }
 
@@ -343,6 +397,7 @@
   const api = {
     LIMITS,
     cleanText,
+    publishedAtFromStatusId,
     normalizePost,
     segmentPostText,
     validateTranslationPayload,
@@ -358,6 +413,8 @@
     libraryToMarkdown,
     wordbookToMarkdown,
     completeSnapshotToMarkdown,
+    markdownTitle,
+    storageWarning,
   };
   root.XDG_LEARNING_DATA = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;

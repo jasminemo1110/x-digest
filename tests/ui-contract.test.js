@@ -82,6 +82,16 @@ test("re-inserts Digest when X replaces a processed post action bar", () => {
   assert.match(script, /detailRootSlot\(article\)/);
   assert.match(script, /function findDetailRoot\(\)/);
   assert.match(script, /document\.querySelectorAll\('\[data-testid="tweet"\]'\)/);
+  assert.match(script, /publishedAt: time\?\.getAttribute\("datetime"\)/);
+});
+
+test("warns before local storage or collection limits are reached", () => {
+  const html = read("sidepanel.html");
+  const script = read("sidepanel.js");
+  const background = read("background.js");
+  assert.match(html, /id="storageNotice"[^>]*role="status"[^>]*hidden/);
+  assert.match(background, /getBytesInUse\(null\)/);
+  assert.match(script, /storageWarning\(/);
 });
 
 test("retires an Explain selection after opening and closing its result", () => {

@@ -319,6 +319,14 @@ async function loadCollections() {
   const result = await send("getCollections");
   collections = { posts: result.posts, entries: result.entries, cache: result.cache };
   renderCollections();
+  const warning = XDG_LEARNING_DATA.storageWarning({
+    usedBytes: result.storageBytesInUse,
+    quotaBytes: result.storageQuotaBytes,
+    libraryCount: collections.posts.length,
+    wordbookCount: collections.entries.length,
+  });
+  $("storageNotice").textContent = warning;
+  $("storageNotice").hidden = !warning;
 }
 
 async function loadActivePost() {

@@ -187,12 +187,17 @@ async function handleAction(message) {
     case "saveWordbook":
       return { success: true, ...(await saveWordbook(message.post, message.explanation)) };
     case "getCollections": {
-      const stored = await chrome.storage.local.get([SAVED_POSTS_KEY, WORDBOOK_KEY, AI_CACHE_KEY]);
+      const [stored, storageBytesInUse] = await Promise.all([
+        chrome.storage.local.get([SAVED_POSTS_KEY, WORDBOOK_KEY, AI_CACHE_KEY]),
+        chrome.storage.local.getBytesInUse(null),
+      ]);
       return {
         success: true,
         posts: Array.isArray(stored[SAVED_POSTS_KEY]) ? stored[SAVED_POSTS_KEY] : [],
         entries: Array.isArray(stored[WORDBOOK_KEY]) ? stored[WORDBOOK_KEY] : [],
         cache: stored[AI_CACHE_KEY] && typeof stored[AI_CACHE_KEY] === "object" ? stored[AI_CACHE_KEY] : {},
+        storageBytesInUse,
+        storageQuotaBytes: chrome.storage.local.QUOTA_BYTES || 10 * 1024 * 1024,
       };
     }
     case "deleteSavedPost": {

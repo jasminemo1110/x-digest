@@ -32,6 +32,15 @@ const EXPLANATION = {
 test("normalizes a valid X post and rejects non-status sources", () => {
   assert.equal(data.normalizePost(POST).recordId, "x-post:123456789");
   assert.throws(() => data.normalizePost({ ...POST, url: "https://example.com/123" }), /valid X post URL/);
+  assert.equal(
+    data.normalizePost({
+      ...POST,
+      id: "2091688655828246890",
+      url: "https://x.com/example/status/2091688655828246890",
+      publishedAt: "2026-08-23T06:11:36.000Z",
+    }).publishedAt,
+    "2026-08-24T00:46:51.902Z",
+  );
 });
 
 test("validates and length-limits untrusted AI payloads", () => {
@@ -80,6 +89,23 @@ test("requires IPA for words and preserves conservative naturalness diagnoses", 
   assert.equal(word.pronunciation, "/flɔ/");
   assert.equal(word.assessment, "as_is");
 
+  const selectedWithPunctuation = data.validateExplanationPayload({
+    ...EXPLANATION,
+    rawSelectedText: "strangely.",
+    selectedText: "strangely.",
+    learningForm: "strangely.",
+    type: "word",
+    pronunciation: "/ˈstreɪndʒli/",
+  });
+  assert.equal(selectedWithPunctuation.rawSelectedText, "strangely.");
+  assert.equal(selectedWithPunctuation.learningForm, "strangely");
+  assert.equal(data.normalizeStoredExplanation({
+    selectedText: "strangely.",
+    learningForm: "strangely.",
+    type: "word",
+    assessment: "as_is",
+  }).learningForm, "strangely");
+
   const legacy = data.normalizeStoredExplanation({
     selectedText: "quota",
     learningForm: "quota",
@@ -117,8 +143,21 @@ test("creates independently deduplicated Library excerpts from one post", async 
 
 test("exports library, wordbook, and complete Markdown snapshots", async () => {
   const entry = await data.createWordbookEntry(POST, EXPLANATION);
-  const saved = { ...POST, translationZh: "这倒是一个出乎意料地公允的看法。" };
+  const saved = {
+    ...POST,
+    text: `${"A deliberately long title with complete words ".repeat(4)}ending.`,
+    translationZh: "这倒是一个出乎意料地公允的看法。",
+    digest: { summaryZh: "简要总结。", toneZh: "冷静", keyPointsZh: ["第一点", "第二点"] },
+  };
   assert.match(data.libraryToMarkdown([saved]), /x-post:123456789[\s\S]*### 中文[\s\S]*出乎意料/);
+  assert.match(data.libraryToMarkdown([saved]), /…[\s\S]*#### Key Points · 要点[\s\S]*- 第一点[\s\S]*- 第二点/);
   assert.match(data.wordbookToMarkdown([entry]), /a fair take[\s\S]*正确自然[\s\S]*<!-- xdg:/);
   assert.match(data.completeSnapshotToMarkdown([saved], [entry]), /Complete Snapshot[\s\S]*Saved Library[\s\S]*Wordbook/);
+});
+
+test("warns near storage or collection limits without warning early", () => {
+  assert.equal(data.storageWarning({ usedBytes: 8_000_000, quotaBytes: 10_000_000, libraryCount: 949 }), "");
+  assert.match(data.storageWarning({ usedBytes: 9_100_000, quotaBytes: 10_000_000 }), /91% full/);
+  assert.match(data.storageWarning({ libraryCount: 950, wordbookCount: 949 }), /Library has 950 of 1000/);
+  assert.match(data.storageWarning({ libraryCount: 950, wordbookCount: 960 }), /Wordbook has 960 of 1000/);
 });
