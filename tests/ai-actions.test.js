@@ -28,6 +28,64 @@ test("builds bounded action prompts and keeps post text as quoted evidence", () 
   });
 });
 
+test("repairs only JSON formatting and never sends post evidence on the repair attempt", () => {
+  const request = actions.buildActionRequest("digest", POST);
+  const messages = actions.buildJsonRepairMessages(request.repairContract, '{"summaryZh":"内容",}');
+  assert.match(messages[0].content, /Fix only JSON syntax and field or array shape/);
+  assert.match(messages[0].content, /Do not translate, summarize, explain, add facts, remove facts/);
+  assert.match(messages[1].content, /OUTPUT_CONTRACT/);
+  assert.match(messages[1].content, /summaryZh/);
+  assert.doesNotMatch(messages[1].content, /POST_EVIDENCE/);
+  assert.doesNotMatch(messages[1].content, new RegExp(POST.text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+});
+
+test("automatically accepts one format-only repair after invalid JSON", async () => {
+  const request = actions.buildActionRequest("digest", POST);
+  let repairs = 0;
+  const result = await actions.validateJsonResponseWithRepair(
+    '{"summaryZh":"内容",}',
+    request.validate,
+    async (candidate) => {
+      repairs += 1;
+      assert.equal(candidate, '{"summaryZh":"内容",}');
+      return '{"summaryZh":"内容","toneZh":"平实","keyPointsZh":[]}';
+    },
+  );
+  assert.equal(repairs, 1);
+  assert.equal(result.repaired, true);
+  assert.equal(result.value.summaryZh, "内容");
+});
+
+test("does not repair a valid response and reports a friendly error after one failed repair", async () => {
+  const request = actions.buildActionRequest("digest", POST);
+  let repairs = 0;
+  const valid = await actions.validateJsonResponseWithRepair(
+    '{"summaryZh":"内容","toneZh":"平实","keyPointsZh":[]}',
+    request.validate,
+    async () => { repairs += 1; return "{}"; },
+  );
+  assert.equal(valid.repaired, false);
+  assert.equal(repairs, 0);
+
+  await assert.rejects(
+    actions.validateJsonResponseWithRepair("not json", request.validate, async () => {
+      repairs += 1;
+      return "still not json";
+    }),
+    /AI 返回格式异常，请重试。/,
+  );
+  assert.equal(repairs, 1);
+
+  await assert.rejects(
+    actions.validateJsonResponseWithRepair("", request.validate, async () => {
+      repairs += 1;
+      return '{"summaryZh":"不应凭空生成"}';
+    }),
+    /AI 返回格式异常，请重试。/,
+  );
+  assert.equal(repairs, 1);
+});
+
 test("translation preserves stable block IDs for interleaved bilingual reading", () => {
   const request = actions.buildActionRequest("translate", POST);
   assert.ok(request.maxTokens >= 1200);

@@ -122,6 +122,7 @@ The key is stored in `chrome.storage.local` in your current Chrome profile. Neve
 - Local Library and Wordbook with duplicate handling
 - Markdown exports for Library, Wordbook, and a complete snapshot
 - Clear missing-key, authentication, rate-limit, network, and timeout errors
+- One automatic format-only repair attempt for malformed structured AI output
 - Warm-up and progress feedback to reduce the perceived delay of a first AI request
 
 ## Boundaries

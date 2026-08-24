@@ -25,6 +25,17 @@ test("keeps translation behind reading modes and shows Explain only after select
   assert.match(css, /\.loading-spinner/);
 });
 
+test("repairs malformed AI JSON once and keeps an older Summary clearly labeled", () => {
+  const html = read("sidepanel.html");
+  const script = read("sidepanel.js");
+  const background = read("background.js");
+  assert.match(background, /validateJsonResponseWithRepair/);
+  assert.match(background, /buildJsonRepairMessages/);
+  assert.match(background, /temperature: 0/);
+  assert.match(html, /id="digestPrevious"[^>]*hidden[^>]*>上一次结果</);
+  assert.match(script, /renderDigest\(activeDigest, \{ previous: true \}\)/);
+});
+
 test("renders aligned bilingual pairs and saves selected excerpts with N", () => {
   const html = read("sidepanel.html");
   const script = read("sidepanel.js");

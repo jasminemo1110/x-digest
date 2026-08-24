@@ -18,14 +18,11 @@ function providerError(response, body) {
   return new Error(detail ? `DeepSeek error (${response.status}): ${detail}` : `DeepSeek request failed (${response.status}).`);
 }
 
-async function callAi(action, postValue, selectedText = "") {
+async function requestAiContent(settings, messages, options) {
   const startedAt = performance.now();
-  const settings = await getSettings();
-  const actionRequest = XDG_AI_ACTIONS.buildActionRequest(action, postValue, selectedText);
-  const request = XDG_AI_PROVIDER.buildRequest(settings, actionRequest.messages, {
+  const request = XDG_AI_PROVIDER.buildRequest(settings, messages, {
+    ...options,
     json: true,
-    temperature: 0.1,
-    maxTokens: actionRequest.maxTokens,
   });
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 60000);
@@ -46,15 +43,45 @@ async function callAi(action, postValue, selectedText = "") {
   let body = {};
   try { body = JSON.parse(rawText); } catch (_) {}
   if (!response.ok) throw providerError(response, body);
-  const content = body?.choices?.[0]?.message?.content;
-  const value = actionRequest.validate(XDG_AI_ACTIONS.parseJsonObject(content));
-  console.debug("[X Digest performance]", {
-    action,
+  return {
+    content: body?.choices?.[0]?.message?.content,
     headersMs: Math.round(headersAt - startedAt),
     bodyMs: Math.round(bodyAt - headersAt),
-    totalMs: Math.round(performance.now() - startedAt),
+  };
+}
+
+async function callAi(action, postValue, selectedText = "") {
+  const startedAt = performance.now();
+  const settings = await getSettings();
+  const actionRequest = XDG_AI_ACTIONS.buildActionRequest(action, postValue, selectedText);
+  const attempts = [];
+  const first = await requestAiContent(settings, actionRequest.messages, {
+    temperature: 0.1,
+    maxTokens: actionRequest.maxTokens,
   });
-  return value;
+  attempts.push(first);
+  const result = await XDG_AI_ACTIONS.validateJsonResponseWithRepair(
+    first.content,
+    actionRequest.validate,
+    async (candidate) => {
+      const repaired = await requestAiContent(
+        settings,
+        XDG_AI_ACTIONS.buildJsonRepairMessages(actionRequest.repairContract, candidate),
+        { temperature: 0, maxTokens: actionRequest.maxTokens },
+      );
+      attempts.push(repaired);
+      return repaired.content;
+    },
+  );
+  console.debug("[X Digest performance]", {
+    action,
+    headersMs: first.headersMs,
+    bodyMs: first.bodyMs,
+    totalMs: Math.round(performance.now() - startedAt),
+    attempts: attempts.length,
+    repaired: result.repaired,
+  });
+  return result.value;
 }
 
 async function cachePostResult(postValue, field, value) {

@@ -122,6 +122,7 @@ npm test
 - 浏览器本地 Library 与 Wordbook，以及重复记录处理
 - Library、Wordbook 和完整快照的 Markdown 导出
 - 缺少 Key、鉴权失败、限流、网络错误与超时的清晰反馈
+- AI 结构化结果异常时，自动进行一次只修复格式的请求
 - 首次 AI 请求的预热与即时进度反馈
 
 ## 产品边界

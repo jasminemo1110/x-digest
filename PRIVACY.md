@@ -22,6 +22,8 @@ P1 reads only post content that X has already rendered in the page you are viewi
 
 For AI features, the relevant post text, selected text, and prompt are sent directly from the extension to DeepSeek only after an action such as translation, summarization, explanation, or bilingual saving. DeepSeek's handling of those requests is governed by its own terms and privacy policy.
 
+If a structured AI response cannot be parsed or validated, X Digest may make one automatic format-repair request to DeepSeek. That repair request contains the expected output contract and the first candidate response, which may itself contain post-derived text, but it does not resend the original X post evidence. The repair instruction asks the model to preserve content and fix only JSON syntax or field shape.
+
 ## Local storage
 
 Settings, your API key, Library records, Wordbook records, and cached learning results are stored in `chrome.storage.local` in your current Chrome profile. They remain there until you remove them, clear the extension's storage, uninstall the extension, or delete the relevant Chrome profile.

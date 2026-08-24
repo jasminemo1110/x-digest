@@ -91,9 +91,10 @@ function renderTranslationLoading() {
   }
 }
 
-function renderDigest(value) {
+function renderDigest(value, { previous = false } = {}) {
   activeDigest = value || null;
   $("digestCard").hidden = !activeDigest;
+  $("digestPrevious").hidden = !activeDigest || !previous;
   if (!activeDigest) return;
   $("digestSummary").textContent = activeDigest.summaryZh;
   $("digestTone").textContent = activeDigest.toneZh ? `语气：${activeDigest.toneZh}` : "";
@@ -359,7 +360,10 @@ async function digestActivePost() {
     renderDigest(result.value);
     collections.cache[activePost.id] = { ...(collections.cache[activePost.id] || {}), digest: result.value };
     setStatus(result.cached ? "Loaded cached summary." : "Summary ready.");
-  } catch (error) { setStatus(error.message, true); }
+  } catch (error) {
+    if (activeDigest) renderDigest(activeDigest, { previous: true });
+    setStatus(error.message, true);
+  }
   finally { setBusy(button, false); }
 }
 
