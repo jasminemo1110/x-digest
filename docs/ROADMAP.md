@@ -25,7 +25,7 @@ Acceptance: the unpacked extension can open a real X post in its side panel and 
 
 ### P1 — Core single-post learning loop
 
-Status: implemented in code with automated coverage; unpacked-extension verification on real X pages is still pending.
+Status: completed for the public-beta scope with automated coverage and manual unpacked-extension verification on real X posts, detail pages, long posts, and visible replies.
 
 - Original, Chinese, and bilingual display.
 - On-demand post translation and short Digest summary.

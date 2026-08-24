@@ -1,31 +1,130 @@
 # X Digest
 
-Turn posts, threads, and replies that you are already reading on X into contextual English-learning material.
+[English](README.md) · [简体中文](README.zh-CN.md)
 
-X Digest is a local-first Chrome extension. V1 is designed to add an inline **Digest** action to posts and replies, preserve conversation context, translate or explain expressions with a user-provided AI key, save learning records locally, and export Markdown.
+**Read X. Keep what matters. Learn the language in context.**
 
-## Current status
+X Digest is a local-first Chrome extension for turning posts you are already reading on X into bilingual reading and English-learning material. Open a post, read an aligned English–Chinese version, summarize a long post, explain an expression in context, or save one useful sentence without collecting your whole timeline.
 
-P1 implements the core single-post learning loop:
+> **Origin and attribution:** X Digest began as an X-focused remix of [YouTube Digest](https://github.com/zarazhangrui/youtube-digest). Its initial architecture and prompt design were adapted from that MIT-licensed project, and it has since evolved into an independent extension built specifically for X.
 
-- inline Digest actions for currently rendered X posts and replies;
-- Original, Chinese, and bilingual reading modes;
-- opt-in DeepSeek translation, short Digest summaries, and selected-text explanations;
-- a local Saved Library and unified Wordbook with stable duplicate upgrades;
-- Saved Library, Wordbook, and complete Markdown snapshot exports;
-- provider-specific missing-key, authentication, rate-limit, network, and timeout errors.
+## Why X Digest?
 
-Automated tests cover the provider contract, AI payload validation, stable IDs, duplicate upgrades, and Markdown exports. Real-page compatibility still needs manual verification after loading the extension in Chrome; DOM compatibility is not implied by the automated tests.
+X is full of lively, current English—but useful expressions are easy to lose in a fast-moving feed. X Digest keeps the reading experience close to the original post while adding just enough help:
 
-See [docs/ROADMAP.md](docs/ROADMAP.md) for the complete V1 and V2 scope.
+- **Aligned bilingual reading** — English and Chinese appear paragraph by paragraph, not as two disconnected walls of text.
+- **Summarize long posts** — get the main idea without losing the original.
+- **Explain in context** — select a word or phrase to check naturalness, correction, IPA, meaning, usage, and examples.
+- **Save only what matters** — save a whole short post or press `N` to keep just the selected sentence or paragraph.
+- **Build a reusable library** — saved posts, excerpts, and wordbook entries stay in the browser and can be exported as Markdown.
+- **Bring your own AI key** — AI requests use your DeepSeek API key; X Digest has no application server.
 
-## Privacy baseline
+## Current release
 
-- No X API, account password, or session-token access in V1.
-- No automatic background collection.
-- AI calls are opt-in and use the user's own key.
-- Saved posts and settings remain in the current Chrome profile.
-- API keys must never be placed in source files or chat messages.
+This repository is the **P1 public beta (`v0.1.0`)**. The core single-post learning loop has been tested as an unpacked extension on real X home, detail, long-post, and reply views. X changes its page structure frequently, so edge cases may still appear.
+
+The extension is not yet published in the Chrome Web Store. Install it locally from this repository.
+
+See [the roadmap](docs/ROADMAP.md) for the current boundary and P2 ideas.
+
+## Screenshots
+
+Fresh screenshots of the current public-beta UI are being prepared. The planned gallery covers:
+
+1. the inline **Digest** button on X;
+2. aligned bilingual reading and **Summarize**;
+3. the contextual **Explain** card;
+4. the bilingual Library and Wordbook.
+
+If you are preparing release images, follow the [screenshot checklist](docs/screenshots/README.md) so private X data and API settings stay out of the repository.
+
+## Install
+
+### With a coding agent
+
+You can give Codex, Claude Code, or another local coding agent this prompt:
+
+```text
+Clone https://github.com/jasminemo1110/x-digest, verify it with npm test,
+then show me how to load the folder as an unpacked Chrome extension.
+Do not read or modify any API keys.
+```
+
+### Manually
+
+```bash
+git clone https://github.com/jasminemo1110/x-digest.git
+cd x-digest
+npm test
+```
+
+Then:
+
+1. Open `chrome://extensions`.
+2. Turn on **Developer mode**.
+3. Choose **Load unpacked**.
+4. Select the `x-digest` folder.
+5. Open `x.com` and refresh the page.
+
+## Configure DeepSeek
+
+1. Create a key on the [DeepSeek API Keys page](https://platform.deepseek.com/api_keys).
+2. Open X Digest settings.
+3. Paste the key and save it.
+
+The key is stored in `chrome.storage.local` in your current Chrome profile. Never commit it, paste it into an issue, or include it in a screenshot.
+
+## Use it
+
+1. Click **Digest** beside a rendered post or reply.
+2. Switch between **Original**, **中文**, and **Bilingual**.
+3. Use **Summarize** for a long post.
+4. Select a word or expression, then click the floating **Explain** button.
+5. Save the explanation to the Wordbook if it is useful.
+6. Use **Save Post** for a whole post, or select an excerpt on X and press `N`.
+7. Open **Library** or **Wordbook** and export Markdown when needed.
+
+## What works today
+
+- Inline Digest actions for currently rendered X posts and replies
+- Original, Chinese, and aligned bilingual reading modes
+- DeepSeek-powered translation, summary, and contextual explanation
+- Naturalness checks, suggested corrections, IPA for words, usage, and examples
+- Whole-post and selected-excerpt bilingual saves
+- Local Library and Wordbook with duplicate handling
+- Markdown exports for Library, Wordbook, and a complete snapshot
+- Clear missing-key, authentication, rate-limit, network, and timeout errors
+- Warm-up and progress feedback to reduce the perceived delay of a first AI request
+
+## Boundaries
+
+X Digest deliberately does **not** read your X password, session token, official Bookmarks, Likes, private archive, or account history. P1 reads only post content that X has already rendered on the page you are viewing.
+
+It does not currently support automatic bookmark sync, full-timeline collection, X Articles, image OCR, video transcription, Spaces, cloud sync, or background account monitoring.
+
+## Privacy
+
+- No analytics, ads, telemetry, or X API access
+- No automatic background collection
+- No X Digest backend server
+- AI requests happen only after a user action and are sent directly to DeepSeek
+- Settings, saved records, and the API key remain in the current Chrome profile
+- Performance logs contain action names and timings, not post text or keys
+
+Read the full [privacy policy](PRIVACY.md) and [security policy](SECURITY.md).
+
+## Make it yours
+
+Forking is welcome. A few possible directions:
+
+- another AI provider;
+- another target language;
+- Anki or spaced-repetition export;
+- Obsidian integration;
+- richer thread and reply summaries;
+- visual or audio learning support.
+
+Please keep the relevant MIT notices when adapting code or prompts. Bug reports and focused pull requests are welcome; never include private posts, cookies, or API keys in an issue.
 
 ## Development
 
@@ -33,4 +132,22 @@ See [docs/ROADMAP.md](docs/ROADMAP.md) for the complete V1 and V2 scope.
 npm test
 ```
 
-Load the project folder through `chrome://extensions` → **Developer mode** → **Load unpacked**.
+The extension uses Manifest V3 and has no build step. Load the repository root through `chrome://extensions` → **Developer mode** → **Load unpacked**.
+
+Automated tests do not guarantee compatibility with X's live DOM. Changes to post detection or injection should also be checked on the X home timeline, post detail page, long posts, and visible replies.
+
+## Acknowledgements
+
+X Digest is grateful to [Zara Zhang's YouTube Digest](https://github.com/zarazhangrui/youtube-digest), whose MIT-licensed architecture and prompt design provided the starting point for this project. See [Third-Party Notices](THIRD_PARTY_NOTICES.md) for the preserved upstream license notice.
+
+## Author
+
+**茉白 Jasmine** — A Japanese-language educator and textbook author learning to build in public through vibe coding, turning teaching experience into practical AI learning tools.
+
+- GitHub: [@jasminemo1110](https://github.com/jasminemo1110)
+- X: [@jasminemobai](https://x.com/jasminemobai)
+- Other platforms: search **茉白Jasmine**
+
+## License
+
+[MIT](LICENSE) © 2026 茉白 Jasmine
