@@ -9,6 +9,8 @@ let collections = { posts: [], entries: [], cache: {} };
 let readingMode = "original";
 let translationPending = false;
 let selectedRange = null;
+let explanationRequestId = 0;
+let excerptSavePending = false;
 
 const $ = (id) => document.getElementById(id);
 
@@ -67,6 +69,28 @@ function renderTranslation(value) {
   $("bilingualBlock").replaceChildren(...pairs);
 }
 
+function createLoadingNode(label) {
+  const loading = document.createElement("span");
+  loading.className = "inline-loading";
+  const spinner = document.createElement("span");
+  spinner.className = "loading-spinner";
+  spinner.setAttribute("aria-hidden", "true");
+  const text = document.createElement("span");
+  text.textContent = label;
+  loading.append(spinner, text);
+  return loading;
+}
+
+function renderTranslationLoading() {
+  if (readingMode === "bilingual") {
+    $("bilingualBlock").replaceChildren(createLoadingNode("Translating aligned bilingual blocks…"));
+    $("bilingualBlock").hidden = false;
+  } else if (readingMode === "chinese") {
+    $("translationText").replaceChildren(createLoadingNode("Translating this post…"));
+    $("translationBlock").hidden = false;
+  }
+}
+
 function renderDigest(value) {
   activeDigest = value || null;
   $("digestCard").hidden = !activeDigest;
@@ -94,11 +118,30 @@ function textDiffers(left, right) {
     XDG_LEARNING_DATA.cleanText(right).toLocaleLowerCase("en-US");
 }
 
+function setExplanationLoading(loading) {
+  $("explanationLoading").hidden = !loading;
+  document.querySelectorAll(".explanation-result-content").forEach((node) => {
+    node.hidden = loading;
+  });
+}
+
+function renderExplanationLoading(selection) {
+  activeExplanation = null;
+  $("explanationOverlay").hidden = false;
+  $("explanationTitle").textContent = `${selection.slice(0, 200)}${selection.length > 200 ? "…" : ""}`;
+  $("explanationPronunciation").textContent = "";
+  $("explanationType").textContent = "";
+  $("explanationAssessment").textContent = "";
+  $("wordbookSaveStatus").textContent = "";
+  setExplanationLoading(true);
+}
+
 function renderExplanation(value) {
   activeExplanation = value ? XDG_LEARNING_DATA.normalizeStoredExplanation(value) : null;
   $("explanationOverlay").hidden = !activeExplanation;
   $("wordbookSaveStatus").textContent = "";
   if (!activeExplanation) return;
+  setExplanationLoading(false);
   $("addWordbookButton").disabled = false;
   $("addWordbookButton").textContent = "Add to Wordbook";
   $("explanationTitle").textContent = activeExplanation.learningForm || activeExplanation.rawSelectedText;
@@ -130,11 +173,13 @@ function clearSelectionState() {
 }
 
 function closeExplanation() {
+  explanationRequestId += 1;
   renderExplanation(null);
   clearSelectionState();
 }
 
 function render(post) {
+  explanationRequestId += 1;
   activePost = post || null;
   activeTranslation = null;
   activeDigest = null;
@@ -289,6 +334,7 @@ async function loadConfigStatus() {
 async function translateActivePost() {
   if (!activePost || translationPending) return;
   translationPending = true;
+  renderTranslationLoading();
   setStatus("Translating this post…");
   try {
     const result = await send("translatePost", { post: activePost });
@@ -319,16 +365,21 @@ async function digestActivePost() {
 
 async function explainSelection() {
   if (!activePost || !selectedText) return;
+  const requestId = ++explanationRequestId;
   const button = $("explainButton");
   $("selectionToolbar").hidden = true;
   window.getSelection()?.removeAllRanges();
   setBusy(button, true, "Explaining…");
+  renderExplanationLoading(selectedText);
   setStatus(`Explaining “${selectedText.slice(0, 80)}”…`);
   try {
     const result = await send("explainSelection", { post: activePost, selectedText });
+    if (requestId !== explanationRequestId) return;
     renderExplanation(result.value);
     setStatus("Explanation ready.");
   } catch (error) {
+    if (requestId !== explanationRequestId) return;
+    $("explanationOverlay").hidden = true;
     $("selectionToolbar").hidden = false;
     positionSelectionToolbar();
     setStatus(error.message, true);
@@ -353,17 +404,28 @@ function captureSelection() {
 }
 
 async function saveSelectedExcerpt() {
-  if (!activePost || !selectedText) return;
+  if (!activePost || !selectedText || excerptSavePending) return;
+  excerptSavePending = true;
+  const selectionAtStart = selectedText;
+  const preview = $("selectionPreview");
+  const explainButton = $("explainButton");
+  preview.textContent = "Saving bilingual excerpt…";
+  setBusy(explainButton, true, "Saving…");
   setStatus("Saving selected excerpt…");
   try {
     const result = await send("saveExcerpt", { post: activePost, selectedText });
+    preview.textContent = result.translationError ? "Excerpt saved · translation unavailable" : "Saved to Library ✓";
     setStatus(result.translationError
       ? `Excerpt saved, but Chinese translation is unavailable: ${result.translationError}`
       : result.updated ? "This bilingual excerpt is already in your Library." : "Bilingual excerpt saved to Library.",
       !!result.translationError);
     await loadCollections();
   } catch (error) {
+    preview.textContent = `“${selectionAtStart.slice(0, 100)}${selectionAtStart.length > 100 ? "…" : ""}”`;
     setStatus(error.message, true);
+  } finally {
+    excerptSavePending = false;
+    setBusy(explainButton, false);
   }
 }
 

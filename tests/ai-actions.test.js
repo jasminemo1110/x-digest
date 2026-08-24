@@ -30,6 +30,7 @@ test("builds bounded action prompts and keeps post text as quoted evidence", () 
 
 test("translation preserves stable block IDs for interleaved bilingual reading", () => {
   const request = actions.buildActionRequest("translate", POST);
+  assert.ok(request.maxTokens >= 1200);
   assert.match(request.messages[0].content, /Never merge, split, omit/);
   assert.match(request.messages[1].content, /TRANSLATION_BLOCKS/);
   const value = request.validate({ segments: [{ id: "b1", translationZh: "这是一个出乎意料地公允的看法。" }] });
@@ -39,6 +40,7 @@ test("translation preserves stable block IDs for interleaved bilingual reading",
 
 test("selected Library excerpts get a contextual Chinese translation", () => {
   const request = actions.buildActionRequest("translateExcerpt", POST, "surprisingly fair take");
+  assert.equal(request.maxTokens, 500);
   assert.match(request.messages[0].content, /Translate only the selected English excerpt/);
   assert.match(request.messages[1].content, /SELECTED_EXCERPT/);
   assert.deepEqual(request.validate({ translationZh: "出乎意料地公允的看法" }), {
@@ -49,6 +51,7 @@ test("selected Library excerpts get a contextual Chinese translation", () => {
 
 test("explain accepts only text selected from the active post", () => {
   const request = actions.buildActionRequest("explain", POST, "fair take");
+  assert.equal(request.maxTokens, 1600);
   assert.match(request.messages[0].content, /as_is, corrected, uncertain/);
   assert.match(request.messages[0].content, /selection-boundary problem/);
   assert.match(request.messages[0].content, /X-style slang/);

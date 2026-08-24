@@ -54,13 +54,14 @@
     <div id="explanationOverlay" class="explanation-overlay" hidden>
       <section id="explanationCard" class="explanation-dialog" role="dialog" aria-modal="true" aria-labelledby="explanationTitle">
         <div class="explanation-heading"><div><div class="term-line"><h2 id="explanationTitle">Explanation</h2><span id="explanationPronunciation" class="pronunciation"></span></div><div class="term-badges"><span id="explanationType" class="badge"></span><span id="explanationAssessment" class="assessment-badge"></span></div></div><button id="closeExplanationButton" class="close-button" type="button" aria-label="Close explanation">×</button></div>
-        <div id="explanationAssessmentNote" class="assessment-note"><strong id="assessmentEnglish"></strong><span id="assessmentChinese"></span><div id="rawSelectionRow" class="raw-selection" hidden>Selected: <span id="rawSelection"></span></div></div>
-        <p id="explanationEnglish" class="explanation-primary"></p>
-        <p id="explanationMeaning" class="explanation-chinese"></p>
-        <p id="explanationUsage" class="usage-note" hidden></p>
-        <div class="example-card"><div class="block-label">Example · 例句</div><div id="exampleEn"></div><div id="exampleZh" class="muted"></div></div>
-        <button id="addWordbookButton" type="button">Add to Wordbook</button>
-        <span id="wordbookSaveStatus" class="dialog-status" role="status" aria-live="polite"></span>
+        <div id="explanationLoading" class="inline-loading" hidden><span class="loading-spinner" aria-hidden="true"></span><span>Analyzing this selection…</span></div>
+        <div id="explanationAssessmentNote" class="assessment-note explanation-result-content"><strong id="assessmentEnglish"></strong><span id="assessmentChinese"></span><div id="rawSelectionRow" class="raw-selection" hidden>Selected: <span id="rawSelection"></span></div></div>
+        <p id="explanationEnglish" class="explanation-primary explanation-result-content"></p>
+        <p id="explanationMeaning" class="explanation-chinese explanation-result-content"></p>
+        <p id="explanationUsage" class="usage-note explanation-result-content" hidden></p>
+        <div class="example-card explanation-result-content"><div class="block-label">Example · 例句</div><div id="exampleEn"></div><div id="exampleZh" class="muted"></div></div>
+        <button id="addWordbookButton" class="explanation-result-content" type="button">Add to Wordbook</button>
+        <span id="wordbookSaveStatus" class="dialog-status explanation-result-content" role="status" aria-live="polite"></span>
       </section>
     </div>
     <script src="learning-data.js"></script>

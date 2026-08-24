@@ -22,6 +22,10 @@
     });
   }
 
+  function boundedOutputBudget(textLength, minimum, maximum, multiplier = 1.4) {
+    return Math.min(maximum, Math.max(minimum, Math.ceil(Number(textLength || 0) * multiplier)));
+  }
+
   function buildActionRequest(action, postValue, selectionValue = "") {
     const post = root.XDG_LEARNING_DATA.normalizePost(postValue);
     const selectionLimit = action === "translateExcerpt"
@@ -38,6 +42,7 @@
     if (action === "translate") {
       const segments = root.XDG_LEARNING_DATA.segmentPostText(post.text);
       return {
+        maxTokens: boundedOutputBudget(post.text.length, 1200, 16384),
         messages: [
           { role: "system", content: `${shared} Translate every supplied English block naturally into Simplified Chinese while preserving tone, names, links, and uncertainty. Keep every block ID exactly once and in the supplied order. Never merge, split, omit, or rewrite the English blocks. Return {\"segments\":[{\"id\":\"b1\",\"translationZh\":\"...\"}]}.` },
           { role: "user", content: `POST_METADATA\n${JSON.stringify({ statusId: post.id, author: [post.authorName, post.handle].filter(Boolean).join(" ") })}\nTRANSLATION_BLOCKS\n${JSON.stringify(segments)}` },
@@ -48,6 +53,7 @@
 
     if (action === "digest") {
       return {
+        maxTokens: 900,
         messages: [
           { role: "system", content: `${shared} Give a short Chinese digest of the post itself. Return {\"summaryZh\":\"...\",\"toneZh\":\"...\",\"keyPointsZh\":[\"...\"]}. Use at most 5 key points.` },
           { role: "user", content: `POST_EVIDENCE\n${postEvidence(post)}` },
@@ -63,6 +69,7 @@
         throw new Error("The excerpt must come from the current post.");
       }
       return {
+        maxTokens: boundedOutputBudget(selection.length, 500, 4096),
         messages: [
           { role: "system", content: `${shared} Translate only the selected English excerpt naturally into Simplified Chinese. Preserve its meaning, tone, names, links, and uncertainty. Use the surrounding post only as context. Return {\"translationZh\":\"...\"}.` },
           { role: "user", content: `SELECTED_EXCERPT\n${JSON.stringify(selection)}\nPOST_CONTEXT\n${postEvidence(post)}` },
@@ -75,6 +82,7 @@
       if (!selection) throw new Error("Select a word, phrase, expression, or sentence first.");
       if (!post.text.includes(selection)) throw new Error("The selection must come from the current post.");
       return {
+        maxTokens: 1600,
         messages: [
           { role: "system", content: `${shared} Diagnose and explain the selected English in its post context for an intermediate Chinese-speaking learner.
 

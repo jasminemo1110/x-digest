@@ -19,9 +19,14 @@ function providerError(response, body) {
 }
 
 async function callAi(action, postValue, selectedText = "") {
+  const startedAt = performance.now();
   const settings = await getSettings();
   const actionRequest = XDG_AI_ACTIONS.buildActionRequest(action, postValue, selectedText);
-  const request = XDG_AI_PROVIDER.buildRequest(settings, actionRequest.messages, { json: true, temperature: 0.1 });
+  const request = XDG_AI_PROVIDER.buildRequest(settings, actionRequest.messages, {
+    json: true,
+    temperature: 0.1,
+    maxTokens: actionRequest.maxTokens,
+  });
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 60000);
   let response;
@@ -34,13 +39,22 @@ async function callAi(action, postValue, selectedText = "") {
     clearTimeout(timeout);
   }
 
+  const headersAt = performance.now();
   const rawText = await response.text();
+  const bodyAt = performance.now();
   if (rawText.length > 2 * 1024 * 1024) throw new Error("DeepSeek response was too large.");
   let body = {};
   try { body = JSON.parse(rawText); } catch (_) {}
   if (!response.ok) throw providerError(response, body);
   const content = body?.choices?.[0]?.message?.content;
-  return actionRequest.validate(XDG_AI_ACTIONS.parseJsonObject(content));
+  const value = actionRequest.validate(XDG_AI_ACTIONS.parseJsonObject(content));
+  console.debug("[X Digest performance]", {
+    action,
+    headersMs: Math.round(headersAt - startedAt),
+    bodyMs: Math.round(bodyAt - headersAt),
+    totalMs: Math.round(performance.now() - startedAt),
+  });
+  return value;
 }
 
 async function cachePostResult(postValue, field, value) {

@@ -15,10 +15,14 @@ test("keeps translation behind reading modes and shows Explain only after select
   assert.match(html, /id="selectionToolbar"[^>]*hidden/);
   assert.match(html, /id="explainButton"[^>]*>Explain</);
   assert.match(html, /id="explanationCard"[^>]*role="dialog"/);
+  assert.match(html, /id="explanationLoading"[^>]*hidden/);
   assert.match(html, /src="ui-geometry\.js"/);
   assert.match(script, /readingMode === "bilingual" \? !hasAlignedTranslation/);
   assert.match(script, /positionNearSelection/);
+  assert.match(script, /renderExplanationLoading\(selectedText\)/);
+  assert.match(script, /renderTranslationLoading\(\)/);
   assert.match(css, /\.selection-toolbar[^}]+position:\s*fixed/);
+  assert.match(css, /\.loading-spinner/);
 });
 
 test("renders aligned bilingual pairs and saves selected excerpts with N", () => {
@@ -30,6 +34,7 @@ test("renders aligned bilingual pairs and saves selected excerpts with N", () =>
   assert.match(script, /className = "bilingual-pair"/);
   assert.match(script, /event\.key\.toLowerCase\(\) === "n"/);
   assert.match(script, /send\("saveExcerpt"/);
+  assert.match(script, /Saving bilingual excerpt…/);
   assert.match(background, /case "saveExcerpt"/);
   assert.match(background, /callAi\("translateExcerpt"/);
   assert.match(background, /message\.recordId \? post\.recordId/);

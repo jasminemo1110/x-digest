@@ -20,6 +20,8 @@
           messages,
           stream: false,
           temperature: options.temperature ?? 0.2,
+          thinking: { type: "disabled" },
+          ...(Number.isInteger(options.maxTokens) ? { max_tokens: options.maxTokens } : {}),
           ...(options.json ? { response_format: { type: "json_object" } } : {}),
         }),
       },
