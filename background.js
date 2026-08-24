@@ -60,7 +60,8 @@ async function runCachedAction(action, postValue) {
   const field = action === "translate" ? "translation" : "digest";
   const stored = await chrome.storage.local.get(AI_CACHE_KEY);
   const cached = stored[AI_CACHE_KEY]?.[post.id]?.[field];
-  if (cached) return { value: cached, cached: true };
+  const cacheIsCurrent = action !== "translate" || XDG_LEARNING_DATA.isAlignedTranslation(cached, post.text);
+  if (cached && cacheIsCurrent) return { value: cached, cached: true };
   const value = await callAi(action, post);
   await cachePostResult(post, field, value);
   return { value, cached: false };
@@ -94,6 +95,15 @@ async function saveWordbook(postValue, explanationValue) {
   return result;
 }
 
+async function saveExcerpt(postValue, selectedText) {
+  const entry = await XDG_LEARNING_DATA.createSavedExcerpt(postValue, selectedText);
+  const stored = await chrome.storage.local.get(SAVED_POSTS_KEY);
+  const posts = Array.isArray(stored[SAVED_POSTS_KEY]) ? stored[SAVED_POSTS_KEY] : [];
+  const result = XDG_LEARNING_DATA.upsertByRecordId(posts, entry);
+  await chrome.storage.local.set({ [SAVED_POSTS_KEY]: result.entries });
+  return result;
+}
+
 async function handleAction(message) {
   switch (message?.action) {
     case "getConfigStatus": {
@@ -108,6 +118,8 @@ async function handleAction(message) {
       return { success: true, value: await callAi("explain", message.post, message.selectedText) };
     case "savePost":
       return { success: true, ...(await savePost(message.post)) };
+    case "saveExcerpt":
+      return { success: true, ...(await saveExcerpt(message.post, message.selectedText)) };
     case "saveWordbook":
       return { success: true, ...(await saveWordbook(message.post, message.explanation)) };
     case "getCollections": {
@@ -121,7 +133,9 @@ async function handleAction(message) {
     }
     case "deleteSavedPost": {
       const stored = await chrome.storage.local.get(SAVED_POSTS_KEY);
-      const posts = (Array.isArray(stored[SAVED_POSTS_KEY]) ? stored[SAVED_POSTS_KEY] : []).filter((post) => post.id !== String(message.id));
+      const posts = (Array.isArray(stored[SAVED_POSTS_KEY]) ? stored[SAVED_POSTS_KEY] : []).filter((post) => (
+        message.recordId ? post.recordId !== message.recordId : post.id !== String(message.id)
+      ));
       await chrome.storage.local.set({ [SAVED_POSTS_KEY]: posts });
       return { success: true };
     }

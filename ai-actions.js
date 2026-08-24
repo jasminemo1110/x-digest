@@ -33,12 +33,13 @@
     ].join(" ");
 
     if (action === "translate") {
+      const segments = root.XDG_LEARNING_DATA.segmentPostText(post.text);
       return {
         messages: [
-          { role: "system", content: `${shared} Translate naturally into Simplified Chinese while preserving tone, names, links, and uncertainty. Return {\"translationZh\":\"...\"}.` },
-          { role: "user", content: `POST_EVIDENCE\n${postEvidence(post)}` },
+          { role: "system", content: `${shared} Translate every supplied English block naturally into Simplified Chinese while preserving tone, names, links, and uncertainty. Keep every block ID exactly once and in the supplied order. Never merge, split, omit, or rewrite the English blocks. Return {\"segments\":[{\"id\":\"b1\",\"translationZh\":\"...\"}]}.` },
+          { role: "user", content: `POST_METADATA\n${JSON.stringify({ statusId: post.id, author: [post.authorName, post.handle].filter(Boolean).join(" ") })}\nTRANSLATION_BLOCKS\n${JSON.stringify(segments)}` },
         ],
-        validate: root.XDG_LEARNING_DATA.validateTranslationPayload,
+        validate: (value) => root.XDG_LEARNING_DATA.validateTranslationPayload(value, segments),
       };
     }
 

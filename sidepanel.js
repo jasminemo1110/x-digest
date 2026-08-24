@@ -36,12 +36,35 @@ async function send(action, payload = {}) {
 
 function renderReadingMode() {
   const hasTranslation = !!activeTranslation?.translationZh;
-  $("originalBlock").hidden = readingMode === "chinese";
-  $("translationBlock").hidden = readingMode === "original" || !hasTranslation;
+  const hasAlignedTranslation = XDG_LEARNING_DATA.isAlignedTranslation(activeTranslation, activePost?.text);
+  $("originalBlock").hidden = readingMode !== "original";
+  $("translationBlock").hidden = readingMode !== "chinese" || !hasTranslation;
+  $("bilingualBlock").hidden = readingMode !== "bilingual" || !hasAlignedTranslation;
   document.querySelectorAll(".mode-button").forEach((button) => {
     button.classList.toggle("active", button.dataset.mode === readingMode);
   });
-  if (readingMode !== "original" && !hasTranslation) translateActivePost();
+  const translationNeeded = readingMode === "chinese" ? !hasTranslation :
+    readingMode === "bilingual" ? !hasAlignedTranslation : false;
+  if (translationNeeded) translateActivePost();
+}
+
+function renderTranslation(value) {
+  activeTranslation = value || null;
+  $("translationText").textContent = activeTranslation?.translationZh || "";
+  const pairs = Array.isArray(activeTranslation?.segments) ? activeTranslation.segments.map((segment) => {
+    const pair = document.createElement("section");
+    pair.className = "bilingual-pair";
+    const original = document.createElement("p");
+    original.className = "bilingual-original";
+    original.dataset.originalText = "true";
+    original.textContent = segment.original;
+    const translated = document.createElement("p");
+    translated.className = "bilingual-translation";
+    translated.textContent = segment.translationZh;
+    pair.append(original, translated);
+    return pair;
+  }) : [];
+  $("bilingualBlock").replaceChildren(...pairs);
 }
 
 function renderDigest(value) {
@@ -127,12 +150,11 @@ function render(post) {
   $("selectionToolbar").hidden = true;
   $("selectionToolbar").style.removeProperty("left");
   $("selectionToolbar").style.removeProperty("top");
-  $("selectionHint").textContent = "Select a word, phrase, or sentence to explain it.";
+  $("selectionHint").textContent = "Select English to Explain, or press N to save the selected excerpt.";
   setStatus("");
 
   const cached = collections.cache?.[post.id] || {};
-  activeTranslation = cached.translation || null;
-  $("translationText").textContent = activeTranslation?.translationZh || "";
+  renderTranslation(cached.translation || null);
   renderDigest(cached.digest || null);
   renderExplanation(null);
   renderReadingMode();
@@ -167,14 +189,17 @@ function renderCollections() {
     card.className = "collection-card";
     const author = document.createElement("strong");
     author.textContent = [post.authorName, post.handle].filter(Boolean).join(" ") || "Unknown author";
+    const kind = document.createElement("span");
+    kind.className = "badge library-kind";
+    kind.textContent = post.kind === "excerpt" ? "Excerpt" : "Post";
     const text = document.createElement("p");
     text.textContent = post.text;
     const controls = document.createElement("div");
     controls.className = "card-controls";
     const open = document.createElement("a");
     Object.assign(open, { href: post.url, target: "_blank", rel: "noreferrer", textContent: "Open on X" });
-    controls.append(open, createDeleteButton("deleteSavedPost", { id: post.id }));
-    card.append(author, text, controls);
+    controls.append(open, createDeleteButton("deleteSavedPost", { recordId: post.recordId }));
+    card.append(author, kind, text, controls);
     return card;
   });
   $("libraryList").replaceChildren(...(libraryNodes.length ? libraryNodes : [collectionEmpty("No saved posts yet.")]));
@@ -262,8 +287,7 @@ async function translateActivePost() {
   setStatus("Translating this post…");
   try {
     const result = await send("translatePost", { post: activePost });
-    activeTranslation = result.value;
-    $("translationText").textContent = activeTranslation.translationZh;
+    renderTranslation(result.value);
     collections.cache[activePost.id] = { ...(collections.cache[activePost.id] || {}), translation: result.value };
     renderReadingMode();
     setStatus(result.cached ? "Loaded cached translation." : "Translation ready.");
@@ -309,15 +333,30 @@ async function explainSelection() {
 
 function captureSelection() {
   const selection = window.getSelection();
-  const text = XDG_LEARNING_DATA.cleanText(selection?.toString(), XDG_LEARNING_DATA.LIMITS.selectedText);
+  const text = XDG_LEARNING_DATA.cleanText(selection?.toString(), XDG_LEARNING_DATA.LIMITS.excerptText);
   if (!text || !selection?.rangeCount) return;
   const range = selection.getRangeAt(0);
-  if (!$("postText").contains(range.commonAncestorContainer)) return;
+  const inOriginal = $("postText").contains(range.commonAncestorContainer);
+  const inBilingual = $("bilingualBlock").contains(range.commonAncestorContainer);
+  const normalizedPost = activePost?.text?.replace(/\s+/g, " ") || "";
+  if ((!inOriginal && !inBilingual) || !normalizedPost.includes(text.replace(/\s+/g, " "))) return;
   selectedText = text;
   selectedRange = range.cloneRange();
   $("selectionPreview").textContent = `“${text.slice(0, 100)}${text.length > 100 ? "…" : ""}”`;
   $("selectionToolbar").hidden = false;
   positionSelectionToolbar();
+}
+
+async function saveSelectedExcerpt() {
+  if (!activePost || !selectedText) return;
+  setStatus("Saving selected excerpt…");
+  try {
+    const result = await send("saveExcerpt", { post: activePost, selectedText });
+    setStatus(result.updated ? "This excerpt is already in your Library." : "Selected excerpt saved to Library.");
+    await loadCollections();
+  } catch (error) {
+    setStatus(error.message, true);
+  }
 }
 
 function positionSelectionToolbar() {
@@ -365,9 +404,19 @@ $("explanationOverlay").addEventListener("click", (event) => {
 });
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !$("explanationOverlay").hidden) closeExplanation();
+  const target = event.target;
+  const isEditable = target instanceof HTMLElement && (
+    target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)
+  );
+  if (event.key.toLowerCase() === "n" && !event.repeat && !event.metaKey && !event.ctrlKey && !event.altKey && !isEditable && $("explanationOverlay").hidden && selectedText) {
+    event.preventDefault();
+    saveSelectedExcerpt();
+  }
 });
 $("postText").addEventListener("mouseup", captureSelection);
 $("postText").addEventListener("keyup", captureSelection);
+$("bilingualBlock").addEventListener("mouseup", captureSelection);
+$("bilingualBlock").addEventListener("keyup", captureSelection);
 window.addEventListener("resize", positionSelectionToolbar);
 window.addEventListener("scroll", positionSelectionToolbar, true);
 $("saveButton").addEventListener("click", async () => {

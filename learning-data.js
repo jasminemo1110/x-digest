@@ -4,6 +4,7 @@
   const LIMITS = Object.freeze({
     postText: 20000,
     selectedText: 500,
+    excerptText: 4000,
     shortText: 1000,
     explanation: 4000,
     entries: 1000,
@@ -50,8 +51,70 @@
     };
   }
 
-  function validateTranslationPayload(value = {}) {
-    return { translationZh: requiredText(value.translationZh, "translationZh", LIMITS.postText) };
+  function segmentPostText(value) {
+    const text = cleanText(value, LIMITS.postText);
+    if (!text) return [];
+    const paragraphs = text.split(/\n+/).map((part) => part.trim()).filter(Boolean);
+    const blocks = [];
+    const segmenter = typeof Intl?.Segmenter === "function"
+      ? new Intl.Segmenter("en", { granularity: "sentence" })
+      : null;
+
+    for (const paragraph of paragraphs) {
+      if (paragraph.length <= 420) {
+        blocks.push(paragraph);
+        continue;
+      }
+      const sentences = segmenter
+        ? [...segmenter.segment(paragraph)].map((item) => item.segment.trim()).filter(Boolean)
+        : paragraph.match(/[^.!?]+(?:[.!?]+|$)/g)?.map((item) => item.trim()).filter(Boolean) || [paragraph];
+      let current = "";
+      for (const sentence of sentences) {
+        if (current && current.length + sentence.length + 1 > 420) {
+          blocks.push(current);
+          current = sentence;
+        } else {
+          current = [current, sentence].filter(Boolean).join(" ");
+        }
+      }
+      if (current) blocks.push(current);
+    }
+    return blocks.map((original, index) => ({ id: `b${index + 1}`, original }));
+  }
+
+  function validateTranslationPayload(value = {}, sourceSegments = []) {
+    if (!Array.isArray(sourceSegments) || sourceSegments.length === 0) {
+      return { translationZh: requiredText(value.translationZh, "translationZh", LIMITS.postText) };
+    }
+    if (!Array.isArray(value.segments) || value.segments.length !== sourceSegments.length) {
+      throw new Error("AI response has incomplete aligned translation segments.");
+    }
+    const translatedById = new Map();
+    for (const item of value.segments) {
+      const id = cleanText(item?.id, 30);
+      if (!id || translatedById.has(id)) throw new Error("AI response has invalid translation segment IDs.");
+      translatedById.set(id, requiredText(item?.translationZh, "translationZh", LIMITS.explanation));
+    }
+    const segments = sourceSegments.map((source) => {
+      if (!translatedById.has(source.id)) throw new Error(`AI response is missing translation segment ${source.id}.`);
+      return { id: source.id, original: source.original, translationZh: translatedById.get(source.id) };
+    });
+    if ([...translatedById.keys()].some((id) => !sourceSegments.some((source) => source.id === id))) {
+      throw new Error("AI response contains unknown translation segment IDs.");
+    }
+    return {
+      translationZh: segments.map((segment) => segment.translationZh).join("\n\n"),
+      segments,
+    };
+  }
+
+  function isAlignedTranslation(value, postText) {
+    const sourceSegments = segmentPostText(postText);
+    if (!value || !Array.isArray(value.segments) || value.segments.length !== sourceSegments.length) return false;
+    return sourceSegments.every((source, index) => {
+      const candidate = value.segments[index];
+      return candidate?.id === source.id && candidate?.original === source.original && !!cleanText(candidate?.translationZh, LIMITS.explanation);
+    });
   }
 
   function validateDigestPayload(value = {}) {
@@ -173,6 +236,28 @@
     };
   }
 
+  function postContainsExcerpt(postText, excerptText) {
+    const normalizeSpace = (text) => cleanText(text, LIMITS.postText).replace(/\s+/g, " ");
+    return normalizeSpace(postText).includes(normalizeSpace(excerptText));
+  }
+
+  async function createSavedExcerpt(postValue, excerptValue, now = new Date().toISOString()) {
+    const post = normalizePost(postValue);
+    const text = requiredText(excerptValue, "excerptText", LIMITS.excerptText);
+    if (!postContainsExcerpt(post.text, text)) throw new Error("The excerpt must come from the current post.");
+    const identity = ["xdg-excerpt-v1", post.id, text.normalize("NFKC").toLocaleLowerCase("en-US")].join("\n");
+    const recordId = `x-excerpt:${(await sha256Hex(identity)).slice(0, 32)}`;
+    return {
+      ...post,
+      recordId,
+      kind: "excerpt",
+      sourcePostId: post.id,
+      sourceText: post.text,
+      text,
+      savedAt: now,
+    };
+  }
+
   function upsertByRecordId(entries, nextEntry, maxEntries = LIMITS.entries) {
     const safeEntries = Array.isArray(entries) ? entries.filter((entry) => entry?.recordId) : [];
     const index = safeEntries.findIndex((entry) => entry.recordId === nextEntry.recordId);
@@ -196,13 +281,16 @@
     const title = cleanText(post.text.split("\n")[0], 100) || `Post ${post.id}`;
     const translation = cleanText(rawPost.translationZh, LIMITS.postText);
     const digest = rawPost.digest && typeof rawPost.digest === "object" ? validateDigestPayload(rawPost.digest) : null;
+    const isExcerpt = rawPost.kind === "excerpt";
+    const recordId = cleanText(rawPost.recordId, 100) || post.recordId;
     return [
-      `## ${title}`,
+      `## ${isExcerpt ? "Excerpt: " : ""}${title}`,
       "",
+      `- Type: ${isExcerpt ? "Excerpt" : "Post"}`,
       `- Author: ${[post.authorName, post.handle].filter(Boolean).join(" ") || "Unknown"}`,
       `- Published: ${post.publishedAt || "Not recorded"}`,
       `- Source: ${post.url}`,
-      `- Record ID: \`${post.recordId}\``,
+      `- Record ID: \`${recordId}\``,
       "",
       "### Original",
       "",
@@ -256,13 +344,16 @@
     LIMITS,
     cleanText,
     normalizePost,
+    segmentPostText,
     validateTranslationPayload,
+    isAlignedTranslation,
     validateDigestPayload,
     normalizeStoredExplanation,
     validateExplanationPayload,
     stableWordbookSource,
     sha256Hex,
     createWordbookEntry,
+    createSavedExcerpt,
     upsertByRecordId,
     libraryToMarkdown,
     wordbookToMarkdown,

@@ -16,9 +16,23 @@ test("keeps translation behind reading modes and shows Explain only after select
   assert.match(html, /id="explainButton"[^>]*>Explain</);
   assert.match(html, /id="explanationCard"[^>]*role="dialog"/);
   assert.match(html, /src="ui-geometry\.js"/);
-  assert.match(script, /readingMode !== "original" && !hasTranslation/);
+  assert.match(script, /readingMode === "bilingual" \? !hasAlignedTranslation/);
   assert.match(script, /positionNearSelection/);
   assert.match(css, /\.selection-toolbar[^}]+position:\s*fixed/);
+});
+
+test("renders aligned bilingual pairs and saves selected excerpts with N", () => {
+  const html = read("sidepanel.html");
+  const script = read("sidepanel.js");
+  const css = read("sidepanel.css");
+  const background = read("background.js");
+  assert.match(html, /id="bilingualBlock"/);
+  assert.match(script, /className = "bilingual-pair"/);
+  assert.match(script, /event\.key\.toLowerCase\(\) === "n"/);
+  assert.match(script, /send\("saveExcerpt"/);
+  assert.match(background, /case "saveExcerpt"/);
+  assert.match(background, /message\.recordId \? post\.recordId/);
+  assert.match(css, /\.bilingual-translation/);
 });
 
 test("uses a warm light side panel and a visible inline Digest action", () => {

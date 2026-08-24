@@ -50,6 +50,24 @@ test("validates and length-limits untrusted AI payloads", () => {
   );
 });
 
+test("segments long posts and accepts only strictly aligned translations", () => {
+  const segments = data.segmentPostText("First paragraph.\n\nSecond paragraph has another idea.");
+  assert.deepEqual(segments, [
+    { id: "b1", original: "First paragraph." },
+    { id: "b2", original: "Second paragraph has another idea." },
+  ]);
+  const translated = data.validateTranslationPayload({ segments: [
+    { id: "b1", translationZh: "第一段。" },
+    { id: "b2", translationZh: "第二段有另一个观点。" },
+  ] }, segments);
+  assert.equal(translated.translationZh, "第一段。\n\n第二段有另一个观点。");
+  assert.equal(data.isAlignedTranslation(translated, "First paragraph.\n\nSecond paragraph has another idea."), true);
+  assert.throws(
+    () => data.validateTranslationPayload({ segments: [{ id: "b1", translationZh: "第一段。" }] }, segments),
+    /incomplete aligned translation/,
+  );
+});
+
 test("requires IPA for words and preserves conservative naturalness diagnoses", () => {
   const word = data.validateExplanationPayload({
     ...EXPLANATION,
@@ -83,6 +101,18 @@ test("creates stable wordbook IDs and upgrades duplicate records", async () => {
   assert.equal(result.entries.length, 1);
   assert.equal(result.entry.createdAt, first.createdAt);
   assert.equal(result.entry.meaningZh, "合理的观点");
+});
+
+test("creates independently deduplicated Library excerpts from one post", async () => {
+  const first = await data.createSavedExcerpt(POST, "surprisingly fair take");
+  const duplicate = await data.createSavedExcerpt(POST, "surprisingly fair take");
+  const second = await data.createSavedExcerpt(POST, "That's a surprisingly");
+  assert.equal(first.kind, "excerpt");
+  assert.equal(first.recordId, duplicate.recordId);
+  assert.notEqual(first.recordId, second.recordId);
+  assert.equal(data.upsertByRecordId([data.normalizePost(POST)], first).entries.length, 2);
+  assert.match(data.libraryToMarkdown([first]), /Type: Excerpt[\s\S]*surprisingly fair take/);
+  await assert.rejects(() => data.createSavedExcerpt(POST, "not in this post"), /current post/);
 });
 
 test("exports library, wordbook, and complete Markdown snapshots", async () => {

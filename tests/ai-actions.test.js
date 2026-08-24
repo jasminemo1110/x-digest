@@ -28,6 +28,15 @@ test("builds bounded action prompts and keeps post text as quoted evidence", () 
   });
 });
 
+test("translation preserves stable block IDs for interleaved bilingual reading", () => {
+  const request = actions.buildActionRequest("translate", POST);
+  assert.match(request.messages[0].content, /Never merge, split, omit/);
+  assert.match(request.messages[1].content, /TRANSLATION_BLOCKS/);
+  const value = request.validate({ segments: [{ id: "b1", translationZh: "这是一个出乎意料地公允的看法。" }] });
+  assert.equal(value.segments[0].original, POST.text);
+  assert.equal(value.translationZh, "这是一个出乎意料地公允的看法。");
+});
+
 test("explain accepts only text selected from the active post", () => {
   const request = actions.buildActionRequest("explain", POST, "fair take");
   assert.match(request.messages[0].content, /as_is, corrected, uncertain/);
