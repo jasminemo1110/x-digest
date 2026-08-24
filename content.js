@@ -1,13 +1,20 @@
 "use strict";
 
 const PROCESSED_ATTRIBUTE = "data-x-digest-ready";
+const POST_CONTAINER_SELECTOR = '[data-testid="tweet"], [data-x-digest-detail-root="true"]';
 
-function firstOwned(article, selector) {
-  return [...article.querySelectorAll(selector)].find((node) => node.closest('article[data-testid="tweet"]') === article) || null;
+function firstOwned(container, selector) {
+  return [...container.querySelectorAll(selector)].find((node) => node.closest(POST_CONTAINER_SELECTOR) === container) || null;
 }
 
 function statusIdentity(article) {
-  const time = firstOwned(article, "time");
+  const ownedTimes = [...article.querySelectorAll("time")].filter((time) => time.closest(POST_CONTAINER_SELECTOR) === article);
+  const detailId = article.getAttribute("data-x-digest-detail-root") === "true"
+    ? currentDetailStatusId()
+    : "";
+  const time = detailId
+    ? ownedTimes.find((candidate) => statusIdFromLink(candidate.closest('a[href*="/status/"]')) === detailId)
+    : ownedTimes[0];
   const link = time?.closest('a[href*="/status/"]');
   const match = link?.getAttribute("href")?.match(/^\/(?:i\/web\/status\/|[^/]+\/status\/)(\d+)/);
   if (!match) return null;
@@ -37,6 +44,22 @@ function extractPost(article) {
 
 function currentDetailStatusId() {
   return location.pathname.match(/\/status\/(\d+)/)?.[1] || "";
+}
+
+function statusIdFromLink(link) {
+  return link?.getAttribute("href")?.match(/\/status\/(\d+)/)?.[1] || "";
+}
+
+function findDetailRoot() {
+  const detailId = currentDetailStatusId();
+  if (!detailId) return null;
+  const matchingTime = [...document.querySelectorAll('a[href*="/status/"] time')].find((time) =>
+    statusIdFromLink(time.closest("a")) === detailId,
+  );
+  const root = matchingTime?.closest('[data-testid="tweet"], article');
+  if (!root) return null;
+  root.setAttribute("data-x-digest-detail-root", "true");
+  return root;
 }
 
 function detailRootSlot(article) {
@@ -100,7 +123,10 @@ function attachDigestButton(article) {
 }
 
 function scan() {
-  document.querySelectorAll('article[data-testid="tweet"]').forEach(attachDigestButton);
+  const containers = new Set(document.querySelectorAll('[data-testid="tweet"]'));
+  const detailRoot = findDetailRoot();
+  if (detailRoot) containers.add(detailRoot);
+  containers.forEach(attachDigestButton);
 }
 
 let scanQueued = false;

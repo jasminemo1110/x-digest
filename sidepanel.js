@@ -73,6 +73,20 @@ function renderExplanation(value) {
   $("exampleZh").textContent = activeExplanation.exampleZh;
 }
 
+function clearSelectionState() {
+  selectedText = "";
+  selectedRange = null;
+  $("selectionToolbar").hidden = true;
+  $("selectionToolbar").style.removeProperty("left");
+  $("selectionToolbar").style.removeProperty("top");
+  window.getSelection()?.removeAllRanges();
+}
+
+function closeExplanation() {
+  renderExplanation(null);
+  clearSelectionState();
+}
+
 function render(post) {
   activePost = post || null;
   activeTranslation = null;
@@ -220,13 +234,19 @@ async function digestActivePost() {
 async function explainSelection() {
   if (!activePost || !selectedText) return;
   const button = $("explainButton");
+  $("selectionToolbar").hidden = true;
+  window.getSelection()?.removeAllRanges();
   setBusy(button, true, "Explaining…");
   setStatus(`Explaining “${selectedText.slice(0, 80)}”…`);
   try {
     const result = await send("explainSelection", { post: activePost, selectedText });
     renderExplanation(result.value);
     setStatus("Explanation ready.");
-  } catch (error) { setStatus(error.message, true); }
+  } catch (error) {
+    $("selectionToolbar").hidden = false;
+    positionSelectionToolbar();
+    setStatus(error.message, true);
+  }
   finally { setBusy(button, false); }
 }
 
@@ -282,12 +302,12 @@ document.querySelectorAll(".mode-button").forEach((button) => button.addEventLis
 $("settingsButton").addEventListener("click", () => chrome.runtime.openOptionsPage());
 $("digestButton").addEventListener("click", digestActivePost);
 $("explainButton").addEventListener("click", explainSelection);
-$("closeExplanationButton").addEventListener("click", () => renderExplanation(null));
+$("closeExplanationButton").addEventListener("click", closeExplanation);
 $("explanationOverlay").addEventListener("click", (event) => {
-  if (event.target === $("explanationOverlay")) renderExplanation(null);
+  if (event.target === $("explanationOverlay")) closeExplanation();
 });
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !$("explanationOverlay").hidden) renderExplanation(null);
+  if (event.key === "Escape" && !$("explanationOverlay").hidden) closeExplanation();
 });
 $("postText").addEventListener("mouseup", captureSelection);
 $("postText").addEventListener("keyup", captureSelection);

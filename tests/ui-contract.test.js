@@ -35,6 +35,15 @@ test("re-inserts Digest when X replaces a processed post action bar", () => {
   assert.match(script, /firstOwned\(article, "\.x-digest-inline-button"\)/);
   assert.match(script, /post\.id === currentDetailStatusId\(\)/);
   assert.match(script, /detailRootSlot\(article\)/);
+  assert.match(script, /function findDetailRoot\(\)/);
+  assert.match(script, /document\.querySelectorAll\('\[data-testid="tweet"\]'\)/);
+});
+
+test("retires an Explain selection after opening and closing its result", () => {
+  const script = read("sidepanel.js");
+  assert.match(script, /function clearSelectionState\(\)/);
+  assert.match(script, /\$\("selectionToolbar"\)\.hidden = true;[\s\S]+setBusy\(button, true, "Explaining…"\)/);
+  assert.match(script, /function closeExplanation\(\)[\s\S]+clearSelectionState\(\)/);
 });
 
 test("reports new and duplicate Wordbook saves inside the explanation dialog", () => {
