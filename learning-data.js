@@ -92,7 +92,6 @@
     return [
       "xdg-wordbook-v1",
       cleanText(postId, 40),
-      cleanText(explanation.learningForm || explanation.selectedText, LIMITS.selectedText).toLocaleLowerCase("en-US"),
       cleanText(explanation.selectedText, LIMITS.selectedText).toLocaleLowerCase("en-US"),
     ].join("\n");
   }

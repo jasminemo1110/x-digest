@@ -6,13 +6,16 @@ X Digest is a local-first Chrome extension. V1 is designed to add an inline **Di
 
 ## Current status
 
-The project is being built in small verified stages. The initial scaffold establishes:
+P1 implements the core single-post learning loop:
 
-- an independent Manifest V3 extension for `x.com`;
-- inline Digest-button discovery for currently rendered posts;
-- a local side panel that receives the selected post;
-- local saving by stable X status ID;
-- an isolated DeepSeek provider contract with no Supadata dependency.
+- inline Digest actions for currently rendered X posts and replies;
+- Original, Chinese, and bilingual reading modes;
+- opt-in DeepSeek translation, short Digest summaries, and selected-text explanations;
+- a local Saved Library and unified Wordbook with stable duplicate upgrades;
+- Saved Library, Wordbook, and complete Markdown snapshot exports;
+- provider-specific missing-key, authentication, rate-limit, network, and timeout errors.
+
+Automated tests cover the provider contract, AI payload validation, stable IDs, duplicate upgrades, and Markdown exports. Real-page compatibility still needs manual verification after loading the extension in Chrome; DOM compatibility is not implied by the automated tests.
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) for the complete V1 and V2 scope.
 

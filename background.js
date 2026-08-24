@@ -80,6 +80,8 @@ async function savePost(postValue, extras = {}) {
     ...extras,
     savedAt: new Date().toISOString(),
   };
+  const existing = posts.find((item) => item?.recordId === next.recordId);
+  if (existing?.text?.length > next.text.length) next.text = existing.text;
   const result = XDG_LEARNING_DATA.upsertByRecordId(posts, next);
   await chrome.storage.local.set({ [SAVED_POSTS_KEY]: result.entries });
   return result;

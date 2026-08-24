@@ -38,7 +38,7 @@ test("validates and length-limits untrusted AI payloads", () => {
 
 test("creates stable wordbook IDs and upgrades duplicate records", async () => {
   const first = await data.createWordbookEntry(POST, EXPLANATION, "2026-08-24T00:00:00.000Z");
-  const second = await data.createWordbookEntry(POST, { ...EXPLANATION, meaningZh: "合理的观点" }, "2026-08-25T00:00:00.000Z");
+  const second = await data.createWordbookEntry(POST, { ...EXPLANATION, meaningZh: "合理的观点", learningForm: "fair take" }, "2026-08-25T00:00:00.000Z");
   assert.equal(first.recordId, second.recordId);
 
   const result = data.upsertByRecordId([first], second);

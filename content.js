@@ -2,8 +2,12 @@
 
 const PROCESSED_ATTRIBUTE = "data-x-digest-ready";
 
+function firstOwned(article, selector) {
+  return [...article.querySelectorAll(selector)].find((node) => node.closest('article[data-testid="tweet"]') === article) || null;
+}
+
 function statusIdentity(article) {
-  const time = article.querySelector("time");
+  const time = firstOwned(article, "time");
   const link = time?.closest('a[href*="/status/"]');
   const match = link?.getAttribute("href")?.match(/^\/(?:i\/web\/status\/|[^/]+\/status\/)(\d+)/);
   if (!match) return null;
@@ -13,10 +17,10 @@ function statusIdentity(article) {
 
 function extractPost(article) {
   const identity = statusIdentity(article);
-  const text = article.querySelector('[data-testid="tweetText"]')?.innerText?.trim();
+  const text = firstOwned(article, '[data-testid="tweetText"]')?.innerText?.trim();
   if (!identity || !text) return null;
 
-  const userName = article.querySelector('[data-testid="User-Name"]');
+  const userName = firstOwned(article, '[data-testid="User-Name"]');
   const handle = [...(userName?.querySelectorAll("span") || [])]
     .map((node) => node.textContent?.trim())
     .find((value) => value?.startsWith("@")) || "";
@@ -26,18 +30,21 @@ function extractPost(article) {
     text: text.slice(0, 20000),
     authorName: userName?.querySelector("span")?.textContent?.trim()?.slice(0, 200) || "",
     handle: handle.slice(0, 100),
-    publishedAt: article.querySelector("time")?.getAttribute("datetime") || "",
+    publishedAt: firstOwned(article, "time")?.getAttribute("datetime") || "",
     capturedAt: new Date().toISOString(),
   };
 }
 
 function attachDigestButton(article) {
   if (article.hasAttribute(PROCESSED_ATTRIBUTE)) return;
-  article.setAttribute(PROCESSED_ATTRIBUTE, "true");
 
   const post = extractPost(article);
-  const actionGroup = article.querySelector('[role="group"]');
+  const actionGroup = [...article.querySelectorAll('[role="group"]')].find((group) =>
+    group.closest('article[data-testid="tweet"]') === article
+      && group.querySelector('[data-testid="reply"], [data-testid="like"], [data-testid="unlike"]'),
+  );
   if (!post || !actionGroup) return;
+  article.setAttribute(PROCESSED_ATTRIBUTE, "true");
 
   const button = document.createElement("button");
   button.type = "button";

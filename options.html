@@ -1,16 +1,35 @@
 <!doctype html>
 <html lang="en">
-  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>X Digest Settings</title></head>
+  <head>
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>X Digest Settings</title>
+    <style>
+      :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+      body { margin: 0; padding: 40px 20px; }
+      main { margin: auto; max-width: 680px; }
+      p { line-height: 1.55; }
+      .settings-card { border: 1px solid color-mix(in srgb, currentColor 16%, transparent); border-radius: 16px; padding: 20px; }
+      label { display: block; font-weight: 700; margin-bottom: 7px; }
+      input { border: 1px solid color-mix(in srgb, currentColor 25%, transparent); border-radius: 9px; font: inherit; padding: 10px 12px; width: 100%; }
+      .provider { color: color-mix(in srgb, currentColor 65%, transparent); font-size: 13px; }
+      .actions { display: flex; gap: 10px; margin-top: 14px; }
+      button { border: 0; border-radius: 999px; cursor: pointer; font: inherit; font-weight: 700; padding: 9px 16px; }
+      button[type="submit"] { background: #1d9bf0; color: white; }
+      #clearKeyButton { background: transparent; color: #d33; }
+      #status { display: block; min-height: 24px; padding-top: 12px; }
+    </style>
+  </head>
   <body>
     <main>
       <h1>X Digest Settings</h1>
       <p>V1 uses one DeepSeek key for opt-in translation, explanation, and summaries. It is stored only in this Chrome profile.</p>
-      <form id="settingsForm">
+      <form id="settingsForm" class="settings-card">
+        <p class="provider">Provider: DeepSeek · Model: <span id="modelName"></span></p>
         <label for="apiKey">DeepSeek API key</label>
         <input id="apiKey" type="password" autocomplete="off" spellcheck="false">
-        <button type="submit">Save</button>
+        <div class="actions"><button type="submit">Save locally</button><button id="clearKeyButton" type="button">Remove key</button></div>
         <span id="status" role="status"></span>
       </form>
+      <p>Only text you explicitly translate, digest, or explain is sent to DeepSeek. Saved posts, Wordbook entries, and AI results remain in this Chrome profile. X Digest does not read X credentials or session tokens.</p>
     </main>
     <script src="settings.js"></script><script src="options.js"></script>
   </body>
