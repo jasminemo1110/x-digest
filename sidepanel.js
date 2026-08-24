@@ -8,6 +8,7 @@ let selectedText = "";
 let collections = { posts: [], entries: [], cache: {} };
 let readingMode = "original";
 let translationPending = false;
+let selectedRange = null;
 
 const $ = (id) => document.getElementById(id);
 
@@ -59,7 +60,10 @@ function renderDigest(value) {
 function renderExplanation(value) {
   activeExplanation = value || null;
   $("explanationOverlay").hidden = !activeExplanation;
+  $("wordbookSaveStatus").textContent = "";
   if (!activeExplanation) return;
+  $("addWordbookButton").disabled = false;
+  $("addWordbookButton").textContent = "Add to Wordbook";
   $("explanationTitle").textContent = activeExplanation.selectedText;
   $("explanationType").textContent = activeExplanation.type;
   $("explanationMeaning").textContent = activeExplanation.meaningZh;
@@ -75,6 +79,7 @@ function render(post) {
   activeDigest = null;
   activeExplanation = null;
   selectedText = "";
+  selectedRange = null;
   $("emptyState").hidden = !!activePost;
   $("postCard").hidden = !activePost;
   if (!activePost) return;
@@ -82,6 +87,8 @@ function render(post) {
   $("postText").textContent = post.text;
   $("sourceLink").href = post.url;
   $("selectionToolbar").hidden = true;
+  $("selectionToolbar").style.removeProperty("left");
+  $("selectionToolbar").style.removeProperty("top");
   $("selectionHint").textContent = "Select a word, phrase, or sentence to explain it.";
   setStatus("");
 
@@ -226,10 +233,33 @@ async function explainSelection() {
 function captureSelection() {
   const selection = window.getSelection();
   const text = XDG_LEARNING_DATA.cleanText(selection?.toString(), XDG_LEARNING_DATA.LIMITS.selectedText);
-  if (!text || !selection?.rangeCount || !$("postText").contains(selection.getRangeAt(0).commonAncestorContainer)) return;
+  if (!text || !selection?.rangeCount) return;
+  const range = selection.getRangeAt(0);
+  if (!$("postText").contains(range.commonAncestorContainer)) return;
   selectedText = text;
+  selectedRange = range.cloneRange();
   $("selectionPreview").textContent = `“${text.slice(0, 100)}${text.length > 100 ? "…" : ""}”`;
   $("selectionToolbar").hidden = false;
+  positionSelectionToolbar();
+}
+
+function positionSelectionToolbar() {
+  const toolbar = $("selectionToolbar");
+  if (!selectedRange || toolbar.hidden) return;
+  const selectionRect = selectedRange.getBoundingClientRect();
+  if (!selectionRect.width && !selectionRect.height) {
+    toolbar.hidden = true;
+    return;
+  }
+  const toolbarRect = toolbar.getBoundingClientRect();
+  const position = XDG_UI_GEOMETRY.positionNearSelection(
+    selectionRect,
+    toolbarRect,
+    { width: window.innerWidth, height: window.innerHeight },
+  );
+  toolbar.style.left = `${position.left}px`;
+  toolbar.style.top = `${position.top}px`;
+  toolbar.dataset.placement = position.placement;
 }
 
 function downloadMarkdown(filename, content) {
@@ -261,6 +291,8 @@ document.addEventListener("keydown", (event) => {
 });
 $("postText").addEventListener("mouseup", captureSelection);
 $("postText").addEventListener("keyup", captureSelection);
+window.addEventListener("resize", positionSelectionToolbar);
+window.addEventListener("scroll", positionSelectionToolbar, true);
 $("saveButton").addEventListener("click", async () => {
   if (!activePost) return;
   try {
@@ -271,11 +303,24 @@ $("saveButton").addEventListener("click", async () => {
 });
 $("addWordbookButton").addEventListener("click", async () => {
   if (!activePost || !activeExplanation) return;
+  const button = $("addWordbookButton");
+  button.disabled = true;
+  button.textContent = "Saving…";
+  $("wordbookSaveStatus").textContent = "";
   try {
     const result = await send("saveWordbook", { post: activePost, explanation: activeExplanation });
-    setStatus(result.updated ? "Wordbook record updated." : "Added to Wordbook.");
-    await loadCollections();
-  } catch (error) { setStatus(error.message, true); }
+    button.textContent = result.updated ? "Already saved" : "Saved";
+    $("wordbookSaveStatus").textContent = result.updated
+      ? "This expression already exists in this post context."
+      : "Added to your Wordbook.";
+    setStatus(result.updated ? "Wordbook record already existed." : "Added to Wordbook.");
+    loadCollections().catch(() => {});
+  } catch (error) {
+    button.disabled = false;
+    button.textContent = "Try again";
+    $("wordbookSaveStatus").textContent = error.message;
+    setStatus(error.message, true);
+  }
 });
 $("exportLibraryButton").addEventListener("click", () => downloadMarkdown("x-digest-library.md", XDG_LEARNING_DATA.libraryToMarkdown(collections.posts)));
 $("exportWordbookButton").addEventListener("click", () => downloadMarkdown("x-digest-wordbook.md", XDG_LEARNING_DATA.wordbookToMarkdown(collections.entries)));

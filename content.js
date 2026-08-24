@@ -35,18 +35,45 @@ function extractPost(article) {
   };
 }
 
+function currentDetailStatusId() {
+  return location.pathname.match(/\/status\/(\d+)/)?.[1] || "";
+}
+
+function detailRootSlot(article) {
+  let slot = firstOwned(article, ".x-digest-detail-slot");
+  if (slot) return slot;
+  const text = firstOwned(article, '[data-testid="tweetText"]');
+  if (!text?.parentElement) return null;
+  slot = document.createElement("div");
+  slot.className = "x-digest-detail-slot";
+  slot.setAttribute("aria-label", "X Digest action for this post");
+  text.insertAdjacentElement("beforebegin", slot);
+  return slot;
+}
+
 function attachDigestButton(article) {
+  const post = extractPost(article);
+  if (!post) return;
+  const isDetailRoot = post.id === currentDetailStatusId();
+
   // X can replace an action bar while retaining the surrounding article.
   // The old ready marker then survives even though our button is gone, so the
   // button itself—not only the marker—is the source of truth.
-  if (firstOwned(article, ".x-digest-inline-button")) return;
+  const existingButton = firstOwned(article, ".x-digest-inline-button");
+  if (existingButton) {
+    const isInDetailSlot = !!existingButton.closest(".x-digest-detail-slot");
+    if (isDetailRoot === isInDetailSlot) return;
+    existingButton.closest(".x-digest-detail-slot")?.remove();
+    existingButton.remove();
+  }
 
-  const post = extractPost(article);
-  const actionGroup = [...article.querySelectorAll('[role="group"]')].find((group) =>
-    group.closest('article[data-testid="tweet"]') === article
-      && group.querySelector('[data-testid="reply"], [data-testid="like"], [data-testid="unlike"]'),
-  );
-  if (!post || !actionGroup) return;
+  const target = isDetailRoot
+    ? detailRootSlot(article)
+    : [...article.querySelectorAll('[role="group"]')].find((group) =>
+      group.closest('article[data-testid="tweet"]') === article
+        && group.querySelector('[data-testid="reply"], [data-testid="like"], [data-testid="unlike"]'),
+    );
+  if (!target) return;
   article.setAttribute(PROCESSED_ATTRIBUTE, "true");
 
   const button = document.createElement("button");
@@ -69,7 +96,7 @@ function attachDigestButton(article) {
       button.title = "X Digest could not connect. Refresh this X tab if the extension was reloaded.";
     });
   });
-  actionGroup.append(button);
+  target.append(button);
 }
 
 function scan() {

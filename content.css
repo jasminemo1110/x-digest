@@ -21,3 +21,11 @@
   outline-offset: 2px;
   transform: translateY(-1px);
 }
+
+.x-digest-detail-slot {
+  align-items: center;
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 8px;
+  min-height: 34px;
+}

@@ -9,12 +9,16 @@ const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 test("keeps translation behind reading modes and shows Explain only after selection", () => {
   const html = read("sidepanel.html");
   const script = read("sidepanel.js");
+  const css = read("sidepanel.css");
   assert.doesNotMatch(html, /id="translateButton"/);
   assert.match(html, /id="digestButton"[^>]*>Summarize</);
   assert.match(html, /id="selectionToolbar"[^>]*hidden/);
   assert.match(html, /id="explainButton"[^>]*>Explain</);
   assert.match(html, /id="explanationCard"[^>]*role="dialog"/);
+  assert.match(html, /src="ui-geometry\.js"/);
   assert.match(script, /readingMode !== "original" && !hasTranslation/);
+  assert.match(script, /positionNearSelection/);
+  assert.match(css, /\.selection-toolbar[^}]+position:\s*fixed/);
 });
 
 test("uses a warm light side panel and a visible inline Digest action", () => {
@@ -29,6 +33,16 @@ test("re-inserts Digest when X replaces a processed post action bar", () => {
   const script = read("content.js");
   assert.doesNotMatch(script, /article\.hasAttribute\(PROCESSED_ATTRIBUTE\)/);
   assert.match(script, /firstOwned\(article, "\.x-digest-inline-button"\)/);
+  assert.match(script, /post\.id === currentDetailStatusId\(\)/);
+  assert.match(script, /detailRootSlot\(article\)/);
+});
+
+test("reports new and duplicate Wordbook saves inside the explanation dialog", () => {
+  const html = read("sidepanel.html");
+  const script = read("sidepanel.js");
+  assert.match(html, /id="wordbookSaveStatus"[^>]*role="status"/);
+  assert.match(script, /result\.updated \? "Already saved" : "Saved"/);
+  assert.match(script, /button\.textContent = "Saving…"/);
 });
 
 test("turns stale buttons into a refresh prompt after extension reload", () => {
