@@ -10,6 +10,7 @@
   });
 
   const ENTRY_TYPES = new Set(["word", "phrase", "expression", "sentence"]);
+  const ASSESSMENTS = new Set(["as_is", "corrected", "uncertain"]);
 
   function cleanText(value, maxLength = LIMITS.shortText) {
     if (typeof value !== "string") return "";
@@ -70,19 +71,72 @@
     return "word";
   }
 
-  function validateExplanationPayload(value = {}, fallbackSelection = "") {
-    const selectedText = requiredText(
-      value.selectedText || fallbackSelection,
-      "selectedText",
+  function normalizeEntryType(value, text) {
+    const normalized = cleanText(value, 30).toLowerCase();
+    return ENTRY_TYPES.has(normalized) ? normalized : inferEntryType(text);
+  }
+
+  function normalizeStoredExplanation(value = {}, fallbackSelection = "") {
+    const rawSelectedText = cleanText(
+      value.rawSelectedText || value.selectedText || fallbackSelection,
       LIMITS.selectedText,
     );
-    const rawType = cleanText(value.type, 30).toLowerCase();
+    const rawAssessment = cleanText(value.assessment, 30).toLowerCase();
+    const assessment = ASSESSMENTS.has(rawAssessment) ? rawAssessment : "unassessed";
+    const suppliedLearningForm = cleanText(value.learningForm || rawSelectedText, LIMITS.selectedText);
+    const learningForm = assessment === "unassessed"
+      ? rawSelectedText || suppliedLearningForm
+      : suppliedLearningForm;
+    const defaultAssessment = {
+      as_is: ["Correct and natural in this context.", "在当前语境中正确自然。"],
+      corrected: ["A correction is recommended.", "建议修正后学习。"],
+      uncertain: ["The intended form is uncertain from this context.", "仅凭当前语境无法确定原意。"],
+      unassessed: ["Not assessed by the current learning model.", "这条旧记录尚未经过自然度判断。"],
+    }[assessment];
     return {
-      selectedText,
-      type: ENTRY_TYPES.has(rawType) ? rawType : inferEntryType(selectedText),
+      rawSelectedText,
+      selectedText: rawSelectedText,
+      learningForm,
+      type: normalizeEntryType(value.type || value.entryType, learningForm || rawSelectedText),
+      assessment,
+      assessmentEn: cleanText(value.assessmentEn, LIMITS.explanation) || defaultAssessment[0],
+      assessmentZh: cleanText(value.assessmentZh, LIMITS.explanation) || defaultAssessment[1],
+      pronunciation: cleanText(value.pronunciation, 200),
+      meaningZh: cleanText(value.meaningZh || value.chineseExplanation, LIMITS.explanation),
+      explanationEn: cleanText(value.explanationEn || value.englishExplanation, LIMITS.explanation),
+      usageZh: cleanText(value.usageZh || value.usageNote || value.usageNoteZh, LIMITS.explanation),
+      exampleEn: cleanText(value.exampleEn || value.cleanSourceSentence, LIMITS.explanation),
+      exampleZh: cleanText(value.exampleZh || value.sourceSentenceZh, LIMITS.explanation),
+    };
+  }
+
+  function validateExplanationPayload(value = {}, fallbackSelection = "") {
+    const rawSelectedText = requiredText(
+      fallbackSelection || value.rawSelectedText || value.selectedText,
+      "rawSelectedText",
+      LIMITS.selectedText,
+    );
+    const assessment = cleanText(value.assessment, 30).toLowerCase();
+    if (!ASSESSMENTS.has(assessment)) throw new Error("AI response has an unsupported assessment.");
+    const suppliedLearningForm = requiredText(value.learningForm, "learningForm", LIMITS.selectedText);
+    const learningForm = assessment === "corrected" ? suppliedLearningForm : rawSelectedText;
+    const type = normalizeEntryType(value.type || value.entryType, learningForm);
+    const pronunciation = cleanText(value.pronunciation, 200);
+    if (type === "word" && !/^\/[^/\n]{1,100}\/$/.test(pronunciation)) {
+      throw new Error("AI response is missing a valid IPA pronunciation.");
+    }
+    return {
+      rawSelectedText,
+      selectedText: rawSelectedText,
+      learningForm,
+      type,
+      assessment,
+      assessmentEn: requiredText(value.assessmentEn, "assessmentEn", LIMITS.explanation),
+      assessmentZh: requiredText(value.assessmentZh, "assessmentZh", LIMITS.explanation),
+      pronunciation,
       meaningZh: requiredText(value.meaningZh, "meaningZh", LIMITS.explanation),
       explanationEn: requiredText(value.explanationEn, "explanationEn", LIMITS.explanation),
-      learningForm: requiredText(value.learningForm || selectedText, "learningForm", LIMITS.selectedText),
+      usageZh: cleanText(value.usageZh, LIMITS.explanation),
       exampleEn: requiredText(value.exampleEn, "exampleEn", LIMITS.explanation),
       exampleZh: requiredText(value.exampleZh, "exampleZh", LIMITS.explanation),
     };
@@ -164,17 +218,24 @@
   }
 
   function wordbookToMarkdown(entries, exportedAt = new Date().toISOString()) {
-    const header = "| Expression | Type | 中文 | English explanation | Example | Source | Record ID |";
-    const divider = "|---|---|---|---|---|---|---|";
-    const rows = (Array.isArray(entries) ? entries : []).map((entry) => [
-      entry.learningForm || entry.selectedText,
-      entry.type,
-      entry.meaningZh,
-      entry.explanationEn,
-      `${entry.exampleEn || ""}<br>${entry.exampleZh || ""}`,
-      entry.sourceUrl ? `[X](${entry.sourceUrl})` : "",
-      `<!-- xdg:${cleanText(entry.recordId, 100)} -->`,
-    ].map(escapeMarkdownCell).join(" | ")).map((row) => `| ${row} |`);
+    const header = "| Expression | IPA | Type | Naturalness | 中文 | English explanation | Usage | Example | Source | Record ID |";
+    const divider = "|---|---|---|---|---|---|---|---|---|---|";
+    const rows = (Array.isArray(entries) ? entries : []).map((entry) => {
+      const explanation = normalizeStoredExplanation(entry);
+      const cells = [
+        explanation.learningForm || explanation.rawSelectedText,
+        explanation.pronunciation,
+        explanation.type,
+        `${explanation.assessmentEn}<br>${explanation.assessmentZh}`,
+        explanation.meaningZh,
+        explanation.explanationEn,
+        explanation.usageZh,
+        `${explanation.exampleEn || ""}<br>${explanation.exampleZh || ""}`,
+        entry.sourceUrl ? `[X](${entry.sourceUrl})` : "",
+        `<!-- xdg:${cleanText(entry.recordId, 100)} -->`,
+      ];
+      return `| ${cells.map(escapeMarkdownCell).join(" | ")} |`;
+    });
     return ["# X Digest Wordbook", "", `Exported: ${exportedAt}`, "", header, divider, ...rows, ""].join("\n");
   }
 
@@ -197,6 +258,7 @@
     normalizePost,
     validateTranslationPayload,
     validateDigestPayload,
+    normalizeStoredExplanation,
     validateExplanationPayload,
     stableWordbookSource,
     sha256Hex,

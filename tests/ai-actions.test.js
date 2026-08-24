@@ -29,7 +29,11 @@ test("builds bounded action prompts and keeps post text as quoted evidence", () 
 });
 
 test("explain accepts only text selected from the active post", () => {
-  assert.doesNotThrow(() => actions.buildActionRequest("explain", POST, "fair take"));
+  const request = actions.buildActionRequest("explain", POST, "fair take");
+  assert.match(request.messages[0].content, /as_is, corrected, uncertain/);
+  assert.match(request.messages[0].content, /selection-boundary problem/);
+  assert.match(request.messages[0].content, /X-style slang/);
+  assert.match(request.messages[0].content, /General American IPA/);
   assert.throws(() => actions.buildActionRequest("explain", POST, "missing words"), /current post/);
   assert.throws(() => actions.buildActionRequest("explain", POST, ""), /Select/);
 });

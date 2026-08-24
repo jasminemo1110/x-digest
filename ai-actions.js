@@ -57,7 +57,14 @@
       if (!post.text.includes(selection)) throw new Error("The selection must come from the current post.");
       return {
         messages: [
-          { role: "system", content: `${shared} Explain the selected English in this post context for an intermediate learner. Preserve natural English; do not claim a transcription error. Return {\"selectedText\":\"...\",\"type\":\"word|phrase|expression|sentence\",\"meaningZh\":\"...\",\"explanationEn\":\"...\",\"learningForm\":\"...\",\"exampleEn\":\"...\",\"exampleZh\":\"...\"}.` },
+          { role: "system", content: `${shared} Diagnose and explain the selected English in its post context for an intermediate Chinese-speaking learner.
+
+First classify the selection as exactly one of: as_is, corrected, uncertain.
+- Use as_is when it is fully correct and natural in this context, including normal X-style slang, abbreviations, fragments, contractions, and informal punctuation.
+- Use corrected only for a definite spelling, grammar, word-form, or selection-boundary problem. Infer the intended complete expression only when the supplied post makes it clear, and make the smallest necessary correction.
+- Use uncertain when the context does not support a confident correction. Never invent missing words or rewrite natural informal English into formal prose.
+
+rawSelectedText must preserve the exact supplied selection. learningForm is the correct, natural form the learner should remember; keep it unchanged for as_is and uncertain. assessmentEn and assessmentZh must always state briefly why the form is correct, corrected, or uncertain. For type word, pronunciation must be one standard General American IPA transcription enclosed in slashes; otherwise use an empty string. usageZh should mention register, collocation, nuance, or a learner pitfall only when useful. exampleEn must be a concise natural example containing learningForm, preferably adapted from the post without inventing outside facts. Return {\"rawSelectedText\":\"...\",\"learningForm\":\"...\",\"type\":\"word|phrase|expression|sentence\",\"assessment\":\"as_is|corrected|uncertain\",\"assessmentEn\":\"...\",\"assessmentZh\":\"...\",\"pronunciation\":\"/IPA/ or empty string\",\"meaningZh\":\"...\",\"explanationEn\":\"...\",\"usageZh\":\"... or empty string\",\"exampleEn\":\"...\",\"exampleZh\":\"...\"}.` },
           { role: "user", content: `SELECTED_TEXT\n${JSON.stringify(selection)}\nPOST_EVIDENCE\n${postEvidence(post)}` },
         ],
         validate: (value) => root.XDG_LEARNING_DATA.validateExplanationPayload(value, selection),

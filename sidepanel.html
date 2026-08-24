@@ -52,9 +52,12 @@
     </main>
     <div id="explanationOverlay" class="explanation-overlay" hidden>
       <section id="explanationCard" class="explanation-dialog" role="dialog" aria-modal="true" aria-labelledby="explanationTitle">
-        <div class="result-heading"><div><h2 id="explanationTitle">Explanation</h2><span id="explanationType" class="badge"></span></div><button id="closeExplanationButton" class="close-button" type="button" aria-label="Close explanation">×</button></div>
-        <p id="explanationMeaning"></p><p id="explanationEnglish"></p>
-        <dl><div><dt>Learning form</dt><dd id="learningForm"></dd></div><div><dt>Example</dt><dd><span id="exampleEn"></span><br><span id="exampleZh" class="muted"></span></dd></div></dl>
+        <div class="explanation-heading"><div><div class="term-line"><h2 id="explanationTitle">Explanation</h2><span id="explanationPronunciation" class="pronunciation"></span></div><div class="term-badges"><span id="explanationType" class="badge"></span><span id="explanationAssessment" class="assessment-badge"></span></div></div><button id="closeExplanationButton" class="close-button" type="button" aria-label="Close explanation">×</button></div>
+        <div id="explanationAssessmentNote" class="assessment-note"><strong id="assessmentEnglish"></strong><span id="assessmentChinese"></span><div id="rawSelectionRow" class="raw-selection" hidden>Selected: <span id="rawSelection"></span></div></div>
+        <p id="explanationEnglish" class="explanation-primary"></p>
+        <p id="explanationMeaning" class="explanation-chinese"></p>
+        <p id="explanationUsage" class="usage-note" hidden></p>
+        <div class="example-card"><div class="block-label">Example · 例句</div><div id="exampleEn"></div><div id="exampleZh" class="muted"></div></div>
         <button id="addWordbookButton" type="button">Add to Wordbook</button>
         <span id="wordbookSaveStatus" class="dialog-status" role="status" aria-live="polite"></span>
       </section>

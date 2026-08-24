@@ -54,6 +54,19 @@ test("reports new and duplicate Wordbook saves inside the explanation dialog", (
   assert.match(script, /button\.textContent = "Saving…"/);
 });
 
+test("shows the learning form, IPA, naturalness, and examples as a structured learning card", () => {
+  const html = read("sidepanel.html");
+  const script = read("sidepanel.js");
+  const css = read("sidepanel.css");
+  assert.match(html, /id="explanationPronunciation"/);
+  assert.match(html, /id="explanationAssessment"/);
+  assert.match(html, /id="rawSelectionRow"/);
+  assert.match(script, /Correct · 正确自然/);
+  assert.match(script, /normalizeStoredExplanation\(entry\)/);
+  assert.match(script, /Untitled expression/);
+  assert.match(css, /\.wordbook-term strong[^}]+font-size:\s*19px/);
+});
+
 test("turns stale buttons into a refresh prompt after extension reload", () => {
   const script = read("content.js");
   assert.match(script, /globalThis\.chrome\?\.runtime/);

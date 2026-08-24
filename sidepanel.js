@@ -57,18 +57,42 @@ function renderDigest(value) {
   }));
 }
 
+function assessmentLabel(value) {
+  return {
+    as_is: "Correct · 正确自然",
+    corrected: "Corrected · 已修正",
+    uncertain: "Uncertain · 待确认",
+    unassessed: "Not assessed · 未评估",
+  }[value] || "Not assessed · 未评估";
+}
+
+function textDiffers(left, right) {
+  return XDG_LEARNING_DATA.cleanText(left).toLocaleLowerCase("en-US") !==
+    XDG_LEARNING_DATA.cleanText(right).toLocaleLowerCase("en-US");
+}
+
 function renderExplanation(value) {
-  activeExplanation = value || null;
+  activeExplanation = value ? XDG_LEARNING_DATA.normalizeStoredExplanation(value) : null;
   $("explanationOverlay").hidden = !activeExplanation;
   $("wordbookSaveStatus").textContent = "";
   if (!activeExplanation) return;
   $("addWordbookButton").disabled = false;
   $("addWordbookButton").textContent = "Add to Wordbook";
-  $("explanationTitle").textContent = activeExplanation.selectedText;
+  $("explanationTitle").textContent = activeExplanation.learningForm || activeExplanation.rawSelectedText;
+  $("explanationPronunciation").textContent = activeExplanation.pronunciation;
   $("explanationType").textContent = activeExplanation.type;
+  $("explanationAssessment").textContent = assessmentLabel(activeExplanation.assessment);
+  $("explanationAssessment").dataset.assessment = activeExplanation.assessment;
+  $("assessmentEnglish").textContent = activeExplanation.assessmentEn;
+  $("assessmentChinese").textContent = activeExplanation.assessmentZh;
+  const correctedSelection = activeExplanation.assessment === "corrected" &&
+    textDiffers(activeExplanation.rawSelectedText, activeExplanation.learningForm);
+  $("rawSelectionRow").hidden = !correctedSelection;
+  $("rawSelection").textContent = activeExplanation.rawSelectedText;
   $("explanationMeaning").textContent = activeExplanation.meaningZh;
   $("explanationEnglish").textContent = activeExplanation.explanationEn;
-  $("learningForm").textContent = activeExplanation.learningForm;
+  $("explanationUsage").hidden = !activeExplanation.usageZh;
+  $("explanationUsage").textContent = activeExplanation.usageZh ? `Usage: ${activeExplanation.usageZh}` : "";
   $("exampleEn").textContent = activeExplanation.exampleEn;
   $("exampleZh").textContent = activeExplanation.exampleZh;
 }
@@ -156,27 +180,60 @@ function renderCollections() {
   $("libraryList").replaceChildren(...(libraryNodes.length ? libraryNodes : [collectionEmpty("No saved posts yet.")]));
 
   const wordbookNodes = collections.entries.map((entry) => {
+    const explanationValue = XDG_LEARNING_DATA.normalizeStoredExplanation(entry);
     const card = document.createElement("article");
-    card.className = "collection-card";
+    card.className = "collection-card wordbook-card";
     const heading = document.createElement("div");
-    heading.className = "result-heading";
+    heading.className = "wordbook-heading";
+    const term = document.createElement("div");
+    term.className = "wordbook-term";
     const title = document.createElement("strong");
-    title.textContent = entry.learningForm || entry.selectedText;
+    title.textContent = explanationValue.learningForm || explanationValue.rawSelectedText || "Untitled expression";
+    const pronunciation = document.createElement("span");
+    pronunciation.className = "pronunciation";
+    pronunciation.textContent = explanationValue.pronunciation;
+    term.append(title, pronunciation);
+    const badges = document.createElement("div");
+    badges.className = "term-badges";
     const badge = document.createElement("span");
     badge.className = "badge";
-    badge.textContent = entry.type || "expression";
-    heading.append(title, badge);
+    badge.textContent = explanationValue.type;
+    const assessment = document.createElement("span");
+    assessment.className = "assessment-badge";
+    assessment.dataset.assessment = explanationValue.assessment;
+    assessment.textContent = assessmentLabel(explanationValue.assessment);
+    badges.append(badge, assessment);
+    heading.append(term, badges);
+    const raw = document.createElement("p");
+    raw.className = "raw-selection";
+    raw.textContent = `Selected: ${explanationValue.rawSelectedText}`;
+    raw.hidden = explanationValue.assessment !== "corrected" ||
+      !textDiffers(explanationValue.rawSelectedText, explanationValue.learningForm);
     const meaning = document.createElement("p");
-    meaning.textContent = entry.meaningZh;
+    meaning.className = "wordbook-meaning";
+    meaning.textContent = explanationValue.meaningZh;
     const explanation = document.createElement("p");
-    explanation.className = "muted";
-    explanation.textContent = entry.explanationEn;
+    explanation.className = "wordbook-explanation muted";
+    explanation.textContent = explanationValue.explanationEn;
+    const usage = document.createElement("p");
+    usage.className = "usage-note";
+    usage.textContent = explanationValue.usageZh ? `Usage: ${explanationValue.usageZh}` : "";
+    usage.hidden = !explanationValue.usageZh;
+    const example = document.createElement("div");
+    example.className = "example-card compact";
+    const exampleEn = document.createElement("div");
+    exampleEn.textContent = explanationValue.exampleEn;
+    const exampleZh = document.createElement("div");
+    exampleZh.className = "muted";
+    exampleZh.textContent = explanationValue.exampleZh;
+    example.append(exampleEn, exampleZh);
+    example.hidden = !explanationValue.exampleEn && !explanationValue.exampleZh;
     const controls = document.createElement("div");
     controls.className = "card-controls";
     const source = document.createElement("a");
     Object.assign(source, { href: entry.sourceUrl, target: "_blank", rel: "noreferrer", textContent: "Source" });
     controls.append(source, createDeleteButton("deleteWordbookEntry", { recordId: entry.recordId }));
-    card.append(heading, meaning, explanation, controls);
+    card.append(heading, raw, meaning, explanation, usage, example, controls);
     return card;
   });
   $("wordbookList").replaceChildren(...(wordbookNodes.length ? wordbookNodes : [collectionEmpty("No Wordbook entries yet.")]));
