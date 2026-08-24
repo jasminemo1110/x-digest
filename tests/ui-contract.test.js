@@ -30,3 +30,10 @@ test("re-inserts Digest when X replaces a processed post action bar", () => {
   assert.doesNotMatch(script, /article\.hasAttribute\(PROCESSED_ATTRIBUTE\)/);
   assert.match(script, /firstOwned\(article, "\.x-digest-inline-button"\)/);
 });
+
+test("turns stale buttons into a refresh prompt after extension reload", () => {
+  const script = read("content.js");
+  assert.match(script, /globalThis\.chrome\?\.runtime/);
+  assert.match(script, /button\.textContent = "Refresh X"/);
+  assert.match(script, /sendMessage\([^;]+\)\.catch/);
+});

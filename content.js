@@ -57,7 +57,17 @@ function attachDigestButton(article) {
   button.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    chrome.runtime.sendMessage({ action: "openDigest", post });
+    const runtime = globalThis.chrome?.runtime;
+    if (!runtime?.sendMessage) {
+      button.textContent = "Refresh X";
+      button.setAttribute("aria-label", "Refresh this X tab after reloading X Digest");
+      button.title = "Refresh this X tab after reloading X Digest.";
+      return;
+    }
+    runtime.sendMessage({ action: "openDigest", post }).catch(() => {
+      button.textContent = "Retry";
+      button.title = "X Digest could not connect. Refresh this X tab if the extension was reloaded.";
+    });
   });
   actionGroup.append(button);
 }
