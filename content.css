@@ -1,0 +1,18 @@
+.x-digest-inline-button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 9999px;
+  color: rgb(83, 100, 113);
+  cursor: pointer;
+  font: 600 12px/1 system-ui, sans-serif;
+  margin: 0 4px;
+  padding: 9px 10px;
+}
+
+.x-digest-inline-button:hover,
+.x-digest-inline-button:focus-visible {
+  background: rgba(29, 155, 240, 0.1);
+  color: rgb(29, 155, 240);
+  outline: none;
+}

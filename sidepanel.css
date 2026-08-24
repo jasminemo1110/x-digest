@@ -1,0 +1,10 @@
+:root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+body { margin: 0; padding: 16px; }
+header { align-items: center; display: flex; justify-content: space-between; }
+h1 { font-size: 20px; margin: 0 0 20px; }
+#postCard { border: 1px solid color-mix(in srgb, currentColor 18%, transparent); border-radius: 14px; padding: 16px; }
+#author { font-weight: 700; }
+#postText { line-height: 1.55; white-space: pre-wrap; }
+.actions { margin-top: 18px; }
+button { border: 0; border-radius: 999px; cursor: pointer; font-weight: 700; padding: 9px 16px; }
+#status { font-size: 13px; min-height: 20px; }

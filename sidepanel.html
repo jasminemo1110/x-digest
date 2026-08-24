@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>X Digest</title>
+    <link rel="stylesheet" href="sidepanel.css">
+  </head>
+  <body>
+    <header><h1>X Digest</h1><a href="options.html" target="_blank">Settings</a></header>
+    <main>
+      <p id="emptyState">Choose Digest beside a post or reply on X.</p>
+      <article id="postCard" hidden>
+        <div id="author"></div>
+        <p id="postText"></p>
+        <a id="sourceLink" target="_blank" rel="noreferrer">Open on X</a>
+        <div class="actions"><button id="saveButton" type="button">Save</button></div>
+        <p id="status" role="status"></p>
+      </article>
+    </main>
+    <script src="sidepanel.js"></script>
+  </body>
+</html>
