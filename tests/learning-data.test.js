@@ -111,7 +111,7 @@ test("creates independently deduplicated Library excerpts from one post", async 
   assert.equal(first.recordId, duplicate.recordId);
   assert.notEqual(first.recordId, second.recordId);
   assert.equal(data.upsertByRecordId([data.normalizePost(POST)], first).entries.length, 2);
-  assert.match(data.libraryToMarkdown([first]), /Type: Excerpt[\s\S]*surprisingly fair take/);
+  assert.match(data.libraryToMarkdown([{ ...first, translationZh: "出乎意料地公允的看法" }]), /Type: Excerpt[\s\S]*surprisingly fair take[\s\S]*### 中文[\s\S]*出乎意料/);
   await assert.rejects(() => data.createSavedExcerpt(POST, "not in this post"), /current post/);
 });
 

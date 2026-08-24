@@ -31,8 +31,22 @@ test("renders aligned bilingual pairs and saves selected excerpts with N", () =>
   assert.match(script, /event\.key\.toLowerCase\(\) === "n"/);
   assert.match(script, /send\("saveExcerpt"/);
   assert.match(background, /case "saveExcerpt"/);
+  assert.match(background, /callAi\("translateExcerpt"/);
   assert.match(background, /message\.recordId \? post\.recordId/);
   assert.match(css, /\.bilingual-translation/);
+});
+
+test("shows bilingual saved posts and uses a distinct X Digest icon", () => {
+  const script = read("sidepanel.js");
+  const css = read("sidepanel.css");
+  const manifest = JSON.parse(read("manifest.json"));
+  const icon = read("icons/icon.svg");
+  assert.match(script, /className = "library-translation"/);
+  assert.match(script, /Translating and saving this post/);
+  assert.match(css, /\.library-translation/);
+  assert.equal(manifest.icons[128], "icons/icon128.png");
+  assert.match(icon, /fill="#1d9bf0"/);
+  assert.match(icon, /aria-label="X Digest"/);
 });
 
 test("uses a warm light side panel and a visible inline Digest action", () => {

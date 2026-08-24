@@ -193,13 +193,18 @@ function renderCollections() {
     kind.className = "badge library-kind";
     kind.textContent = post.kind === "excerpt" ? "Excerpt" : "Post";
     const text = document.createElement("p");
+    text.className = "library-original";
     text.textContent = post.text;
+    const translation = document.createElement("p");
+    translation.className = "library-translation";
+    translation.textContent = post.translationZh || "";
+    translation.hidden = !post.translationZh;
     const controls = document.createElement("div");
     controls.className = "card-controls";
     const open = document.createElement("a");
     Object.assign(open, { href: post.url, target: "_blank", rel: "noreferrer", textContent: "Open on X" });
     controls.append(open, createDeleteButton("deleteSavedPost", { recordId: post.recordId }));
-    card.append(author, kind, text, controls);
+    card.append(author, kind, text, translation, controls);
     return card;
   });
   $("libraryList").replaceChildren(...(libraryNodes.length ? libraryNodes : [collectionEmpty("No saved posts yet.")]));
@@ -352,7 +357,10 @@ async function saveSelectedExcerpt() {
   setStatus("Saving selected excerpt…");
   try {
     const result = await send("saveExcerpt", { post: activePost, selectedText });
-    setStatus(result.updated ? "This excerpt is already in your Library." : "Selected excerpt saved to Library.");
+    setStatus(result.translationError
+      ? `Excerpt saved, but Chinese translation is unavailable: ${result.translationError}`
+      : result.updated ? "This bilingual excerpt is already in your Library." : "Bilingual excerpt saved to Library.",
+      !!result.translationError);
     await loadCollections();
   } catch (error) {
     setStatus(error.message, true);
@@ -421,11 +429,22 @@ window.addEventListener("resize", positionSelectionToolbar);
 window.addEventListener("scroll", positionSelectionToolbar, true);
 $("saveButton").addEventListener("click", async () => {
   if (!activePost) return;
+  const button = $("saveButton");
+  setBusy(button, true, "Saving…");
+  setStatus("Translating and saving this post…");
   try {
     const result = await send("savePost", { post: activePost });
-    setStatus(result.updated ? "Saved record updated." : "Saved locally.");
+    if (result.translation) {
+      renderTranslation(result.translation);
+      collections.cache[activePost.id] = { ...(collections.cache[activePost.id] || {}), translation: result.translation };
+    }
+    setStatus(result.translationError
+      ? `Post saved, but Chinese translation is unavailable: ${result.translationError}`
+      : result.updated ? "Bilingual saved post updated." : "Bilingual post saved locally.",
+      !!result.translationError);
     await loadCollections();
   } catch (error) { setStatus(error.message, true); }
+  finally { setBusy(button, false); }
 });
 $("addWordbookButton").addEventListener("click", async () => {
   if (!activePost || !activeExplanation) return;

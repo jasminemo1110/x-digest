@@ -94,6 +94,8 @@ dd { margin: 3px 0 0; }
 .collection-card { background: var(--panel); border: 1px solid var(--border); border-radius: 13px; box-shadow: 0 4px 16px rgba(75, 65, 48, .05); padding: 13px; }
 .collection-card p { line-height: 1.5; margin: 9px 0; white-space: pre-wrap; }
 .library-kind { display: inline-block; margin-top: 7px; }
+.library-original { color: var(--text); }
+.library-translation { border-top: 1px solid rgba(222, 216, 202, .75); color: #6d675e; font-size: 13px; padding-top: 10px; }
 .wordbook-card { padding: 16px; }
 .wordbook-heading { display: block; }
 .wordbook-term { align-items: baseline; display: flex; flex-wrap: wrap; gap: 8px; }

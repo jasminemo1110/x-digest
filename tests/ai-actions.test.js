@@ -37,6 +37,16 @@ test("translation preserves stable block IDs for interleaved bilingual reading",
   assert.equal(value.translationZh, "这是一个出乎意料地公允的看法。");
 });
 
+test("selected Library excerpts get a contextual Chinese translation", () => {
+  const request = actions.buildActionRequest("translateExcerpt", POST, "surprisingly fair take");
+  assert.match(request.messages[0].content, /Translate only the selected English excerpt/);
+  assert.match(request.messages[1].content, /SELECTED_EXCERPT/);
+  assert.deepEqual(request.validate({ translationZh: "出乎意料地公允的看法" }), {
+    translationZh: "出乎意料地公允的看法",
+  });
+  assert.throws(() => actions.buildActionRequest("translateExcerpt", POST, "not present"), /current post/);
+});
+
 test("explain accepts only text selected from the active post", () => {
   const request = actions.buildActionRequest("explain", POST, "fair take");
   assert.match(request.messages[0].content, /as_is, corrected, uncertain/);

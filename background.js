@@ -99,9 +99,32 @@ async function saveExcerpt(postValue, selectedText) {
   const entry = await XDG_LEARNING_DATA.createSavedExcerpt(postValue, selectedText);
   const stored = await chrome.storage.local.get(SAVED_POSTS_KEY);
   const posts = Array.isArray(stored[SAVED_POSTS_KEY]) ? stored[SAVED_POSTS_KEY] : [];
-  const result = XDG_LEARNING_DATA.upsertByRecordId(posts, entry);
+  const existing = posts.find((item) => item?.recordId === entry.recordId);
+  let translationZh = XDG_LEARNING_DATA.cleanText(existing?.translationZh, XDG_LEARNING_DATA.LIMITS.postText);
+  let translationError = "";
+  if (!translationZh) {
+    try {
+      translationZh = (await callAi("translateExcerpt", postValue, selectedText)).translationZh;
+    } catch (error) {
+      translationError = XDG_LEARNING_DATA.cleanText(error?.message, 500) || "Translation was unavailable.";
+    }
+  }
+  const nextEntry = translationZh ? { ...entry, translationZh } : entry;
+  const result = XDG_LEARNING_DATA.upsertByRecordId(posts, nextEntry);
   await chrome.storage.local.set({ [SAVED_POSTS_KEY]: result.entries });
-  return result;
+  return { ...result, translationError };
+}
+
+async function savePostWithTranslation(postValue) {
+  let translation = null;
+  let translationError = "";
+  try {
+    translation = (await runCachedAction("translate", postValue)).value;
+  } catch (error) {
+    translationError = XDG_LEARNING_DATA.cleanText(error?.message, 500) || "Translation was unavailable.";
+  }
+  const result = await savePost(postValue);
+  return { ...result, translation, translationError };
 }
 
 async function handleAction(message) {
@@ -117,7 +140,7 @@ async function handleAction(message) {
     case "explainSelection":
       return { success: true, value: await callAi("explain", message.post, message.selectedText) };
     case "savePost":
-      return { success: true, ...(await savePost(message.post)) };
+      return { success: true, ...(await savePostWithTranslation(message.post)) };
     case "saveExcerpt":
       return { success: true, ...(await saveExcerpt(message.post, message.selectedText)) };
     case "saveWordbook":
