@@ -1,8 +1,7 @@
 "use strict";
 
-importScripts("settings.js", "ai-provider.js", "learning-data.js", "ai-actions.js");
+importScripts("settings.js", "ai-provider.js", "learning-data.js", "ai-actions.js", "interaction-actions.js");
 
-const ACTIVE_POST_KEY = "xdg_active_post";
 const SAVED_POSTS_KEY = "xdg_saved_posts";
 const WORDBOOK_KEY = "xdg_wordbook";
 const AI_CACHE_KEY = "xdg_ai_cache";
@@ -144,10 +143,11 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
     if (message?.action === "openDigest") {
-      if (!message.post || !sender.tab?.id) throw new Error("Open Digest requires an X tab and post.");
-      const post = XDG_LEARNING_DATA.normalizePost(message.post);
-      await chrome.storage.local.set({ [ACTIVE_POST_KEY]: post });
-      await chrome.sidePanel.open({ tabId: sender.tab.id });
+      await XDG_INTERACTION_ACTIONS.openDigestFromUserGesture(
+        chrome,
+        message.post,
+        sender.tab?.id,
+      );
       return { success: true };
     }
     return handleAction(message);
