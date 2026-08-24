@@ -1,5 +1,7 @@
 # X Digest
 
+<p align="center"><img src="icons/icon128.png" width="96" alt="X Digest 鼠标指针图标"></p>
+
 [English](README.md) · [简体中文](README.zh-CN.md)
 
 **读懂 X，留下真正重要的内容，在语境中学习语言。**
@@ -30,6 +32,11 @@ X 上有大量鲜活、当下的英语，但在快速滚动的信息流中，值
 ## 截图
 
 ![X Digest 在公开推文旁显示 Digest 入口与逐段双语阅读](docs/screenshots/overview.png)
+
+<p align="center">
+  <img src="docs/screenshots/summary.png" alt="X Digest 为一篇公开长推文生成结构化中文总结">
+  <br><sub>把长推文整理成简明概述、语气判断与关键要点。</sub>
+</p>
 
 <table>
   <tr>

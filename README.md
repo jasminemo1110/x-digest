@@ -1,5 +1,7 @@
 # X Digest
 
+<p align="center"><img src="icons/icon128.png" width="96" alt="X Digest cursor icon"></p>
+
 [English](README.md) · [简体中文](README.zh-CN.md)
 
 **Read X. Keep what matters. Learn the language in context.**
@@ -30,6 +32,11 @@ See [the roadmap](docs/ROADMAP.md) for the current boundary and P2 ideas.
 ## Screenshots
 
 ![X Digest running beside a public X post with Digest actions and aligned bilingual reading](docs/screenshots/overview.png)
+
+<p align="center">
+  <img src="docs/screenshots/summary.png" alt="A long public X post with a structured Chinese summary in X Digest">
+  <br><sub>Turn a long post into a concise overview, tone reading, and key points.</sub>
+</p>
 
 <table>
   <tr>

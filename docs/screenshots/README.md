@@ -7,6 +7,7 @@ Use fresh screenshots from the current public-beta build. Do not reuse older dev
 | File | Show | Suggested crop |
 | --- | --- | --- |
 | `overview.png` | A public X post, visible Digest actions, and aligned bilingual reading | Browser chrome and personal navigation are removed |
+| `summary.png` | A long public post beside its structured summary | Browser chrome, personal navigation, and an unrelated provider error are removed |
 | `explain-trigger.png` | The floating Explain action next to the active selection | Current Reader card only |
 | `explain-card.png` | Naturalness, IPA, meaning, usage, example, and saved feedback | Complete learning dialog |
 | `excerpt-save.png` | Immediate Library feedback after saving selected text with `N` | Selection and floating feedback only |
@@ -23,4 +24,4 @@ Use fresh screenshots from the current public-beta build. Do not reuse older dev
 - Confirm the UI labels and colors match the current extension.
 - Open each final image once at full size before adding it to Git.
 
-The gallery in both README files uses the same assets and localized captions. A future summary-result image may be added if it demonstrates a meaningfully different state.
+The gallery in both README files uses the same assets and localized captions.
