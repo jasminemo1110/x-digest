@@ -29,14 +29,35 @@ See [the roadmap](docs/ROADMAP.md) for the current boundary and P2 ideas.
 
 ## Screenshots
 
-Fresh screenshots of the current public-beta UI are being prepared. The planned gallery covers:
+![X Digest running beside a public X post with Digest actions and aligned bilingual reading](docs/screenshots/overview.png)
 
-1. the inline **Digest** button on X;
-2. aligned bilingual reading and **Summarize**;
-3. the contextual **Explain** card;
-4. the bilingual Library and Wordbook.
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/explain-trigger.png" alt="A floating Explain button appears beside the selected word">
+      <br><sub>Select a word without leaving the post.</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/explain-card.png" alt="A contextual learning card with IPA, naturalness, meaning, usage, and example">
+      <br><sub>Check naturalness, IPA, meaning, usage, and an example—then save it.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/library.png" alt="The bilingual Saved Library with a selected excerpt and a complete post">
+      <br><sub>Keep a whole post or just the excerpt that matters.</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/wordbook.png" alt="The Wordbook with structured words, IPA, definitions, usage, and examples">
+      <br><sub>Turn explanations into a reusable local Wordbook.</sub>
+    </td>
+  </tr>
+</table>
 
-If you are preparing release images, follow the [screenshot checklist](docs/screenshots/README.md) so private X data and API settings stay out of the repository.
+<p align="center">
+  <img src="docs/screenshots/excerpt-save.png" width="520" alt="Selected text saved to the Library with the N shortcut">
+  <br><sub>Select a sentence or paragraph and press <code>N</code> to save it to the Library.</sub>
+</p>
 
 ## Install
 
@@ -134,7 +155,7 @@ npm test
 
 The extension uses Manifest V3 and has no build step. Load the repository root through `chrome://extensions` → **Developer mode** → **Load unpacked**.
 
-Automated tests do not guarantee compatibility with X's live DOM. Changes to post detection or injection should also be checked on the X home timeline, post detail page, long posts, and visible replies.
+Automated tests do not guarantee compatibility with X's live DOM. Changes to post detection or injection should also be checked on the X home timeline, post detail page, long posts, and visible replies. Public screenshot guidance lives in the [release image checklist](docs/screenshots/README.md).
 
 ## Acknowledgements
 

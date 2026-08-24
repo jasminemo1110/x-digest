@@ -2,14 +2,16 @@
 
 Use fresh screenshots from the current public-beta build. Do not reuse older development screenshots that show obsolete UI or known bugs.
 
-## Planned images
+## Included images
 
 | File | Show | Suggested crop |
 | --- | --- | --- |
-| `digest-button.png` | A clearly visible blue Digest button on a public X post | Post card plus its action row |
-| `bilingual-reader.png` | Paragraph-aligned English and Chinese in the side panel | Post text and bilingual tab; hide browser chrome if possible |
-| `explain-card.png` | A selected expression and its naturalness, IPA, meaning, usage, and example | Explain card plus a small amount of source context |
-| `library-wordbook.png` | Bilingual saved content and a clearly titled wordbook entry | One or two representative local records |
+| `overview.png` | A public X post, visible Digest actions, and aligned bilingual reading | Browser chrome and personal navigation are removed |
+| `explain-trigger.png` | The floating Explain action next to the active selection | Current Reader card only |
+| `explain-card.png` | Naturalness, IPA, meaning, usage, example, and saved feedback | Complete learning dialog |
+| `excerpt-save.png` | Immediate Library feedback after saving selected text with `N` | Selection and floating feedback only |
+| `library.png` | One excerpt and one whole-post bilingual save | Complete Library panel |
+| `wordbook.png` | Structured wordbook entries with examples | Complete Wordbook panel |
 
 ## Privacy check before committing
 
@@ -21,4 +23,4 @@ Use fresh screenshots from the current public-beta build. Do not reuse older dev
 - Confirm the UI labels and colors match the current extension.
 - Open each final image once at full size before adding it to Git.
 
-After the four files are ready, add a compact gallery near the top of both README files.
+The gallery in both README files uses the same assets and localized captions. A future summary-result image may be added if it demonstrates a meaningfully different state.

@@ -29,14 +29,35 @@ X 上有大量鲜活、当下的英语，但在快速滚动的信息流中，值
 
 ## 截图
 
-当前公开测试版的全新截图正在准备中，计划展示：
+![X Digest 在公开推文旁显示 Digest 入口与逐段双语阅读](docs/screenshots/overview.png)
 
-1. X 页面里的蓝色 **Digest** 按钮；
-2. 逐段双语阅读与 **Summarize**；
-3. 悬浮在划词附近的 **Explain** 卡片；
-4. 双语 Library 与 Wordbook。
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/explain-trigger.png" alt="选中单词后，Explain 按钮悬浮在选区附近">
+      <br><sub>不离开推文，直接选中需要理解的单词。</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/explain-card.png" alt="包含音标、自然度、含义、用法和例句的语境学习卡片">
+      <br><sub>确认自然度、音标、含义、用法和例句，并一键收藏。</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/library.png" alt="同时包含选中摘录和完整推文的双语收藏库">
+      <br><sub>可以保留整条推文，也可以只留下真正重要的片段。</sub>
+    </td>
+    <td width="50%" align="center">
+      <img src="docs/screenshots/wordbook.png" alt="包含词条、音标、解释、用法和例句的 Wordbook">
+      <br><sub>把一次解释沉淀为可以反复使用的本地 Wordbook。</sub>
+    </td>
+  </tr>
+</table>
 
-准备发布截图时，请先按照[截图清单](docs/screenshots/README.md)检查，避免把私人 X 内容或 API 设置放进公开仓库。
+<p align="center">
+  <img src="docs/screenshots/excerpt-save.png" width="520" alt="通过 N 快捷键把选中文字保存到 Library">
+  <br><sub>选中一句或一段文字，按 <code>N</code> 即可保存到 Library。</sub>
+</p>
 
 ## 安装
 
@@ -134,7 +155,7 @@ npm test
 
 本扩展使用 Manifest V3，不需要构建步骤。可以直接在 `chrome://extensions` → **开发者模式** → **加载已解压的扩展程序**中选择仓库根目录。
 
-自动化测试不等于对 X 实时 DOM 的兼容保证。修改推文识别或按钮注入逻辑后，还需要在 X 首页、推文详情页、长推文和可见回复中手动验证。
+自动化测试不等于对 X 实时 DOM 的兼容保证。修改推文识别或按钮注入逻辑后，还需要在 X 首页、推文详情页、长推文和可见回复中手动验证。公开截图规范请查看[发布图片检查清单](docs/screenshots/README.md)。
 
 ## 致谢
 
