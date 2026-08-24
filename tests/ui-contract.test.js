@@ -52,6 +52,7 @@ test("shows bilingual saved posts and uses a distinct X Digest icon", () => {
   assert.equal(manifest.icons[128], "icons/icon128.png");
   assert.match(icon, /fill="#1d9bf0"/);
   assert.match(icon, /aria-label="X Digest"/);
+  assert.match(icon, /data-symbol="cursor"/);
 });
 
 test("uses a warm light side panel and a visible inline Digest action", () => {
