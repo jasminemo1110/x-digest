@@ -51,7 +51,7 @@ test("creates stable wordbook IDs and upgrades duplicate records", async () => {
 test("exports library, wordbook, and complete Markdown snapshots", async () => {
   const entry = await data.createWordbookEntry(POST, EXPLANATION);
   const saved = { ...POST, translationZh: "这倒是一个出乎意料地公允的看法。" };
-  assert.match(data.libraryToMarkdown([saved]), /xdg_saved|x-post:123456789|### 中文/);
+  assert.match(data.libraryToMarkdown([saved]), /x-post:123456789[\s\S]*### 中文[\s\S]*出乎意料/);
   assert.match(data.wordbookToMarkdown([entry]), /a fair take|<!-- xdg:/);
   assert.match(data.completeSnapshotToMarkdown([saved], [entry]), /Complete Snapshot[\s\S]*Saved Library[\s\S]*Wordbook/);
 });

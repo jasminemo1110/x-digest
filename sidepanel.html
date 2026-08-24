@@ -7,17 +7,54 @@
     <link rel="stylesheet" href="sidepanel.css">
   </head>
   <body>
-    <header><h1>X Digest</h1><a href="options.html" target="_blank">Settings</a></header>
+    <header>
+      <h1>X Digest</h1>
+      <button id="settingsButton" class="text-button" type="button">Settings</button>
+    </header>
+    <nav class="primary-tabs" aria-label="X Digest sections">
+      <button class="tab-button active" data-view="reader" type="button">Reader</button>
+      <button class="tab-button" data-view="library" type="button">Library <span id="libraryCount">0</span></button>
+      <button class="tab-button" data-view="wordbook" type="button">Wordbook <span id="wordbookCount">0</span></button>
+    </nav>
     <main>
-      <p id="emptyState">Choose Digest beside a post or reply on X.</p>
-      <article id="postCard" hidden>
-        <div id="author"></div>
-        <p id="postText"></p>
-        <a id="sourceLink" target="_blank" rel="noreferrer">Open on X</a>
-        <div class="actions"><button id="saveButton" type="button">Save</button></div>
-        <p id="status" role="status"></p>
-      </article>
+      <section id="readerView" class="view">
+        <p id="configNotice" class="notice" hidden></p>
+        <p id="emptyState" class="empty-state">Choose Digest beside a post or reply on X.</p>
+        <article id="postCard" hidden>
+          <div class="post-meta"><strong id="author"></strong><a id="sourceLink" target="_blank" rel="noreferrer">Open on X</a></div>
+          <div class="mode-switch" role="group" aria-label="Reading mode">
+            <button class="mode-button active" data-mode="original" type="button">Original</button>
+            <button class="mode-button" data-mode="chinese" type="button">中文</button>
+            <button class="mode-button" data-mode="bilingual" type="button">双语</button>
+          </div>
+          <div id="originalBlock" class="reading-block"><p class="block-label">Original</p><p id="postText" tabindex="0"></p></div>
+          <div id="translationBlock" class="reading-block" hidden><p class="block-label">中文</p><p id="translationText"></p></div>
+          <p id="selectionHint" class="selection-hint">Select text in the original post, then choose Explain.</p>
+          <div class="actions">
+            <button id="translateButton" type="button">Translate</button><button id="digestButton" type="button">Digest</button>
+            <button id="explainButton" type="button" disabled>Explain selection</button><button id="saveButton" class="secondary" type="button">Save post</button>
+          </div>
+          <section id="digestCard" class="result-card" hidden><h2>Digest</h2><p id="digestSummary"></p><p id="digestTone" class="muted"></p><ul id="digestPoints"></ul></section>
+          <section id="explanationCard" class="result-card" hidden>
+            <div class="result-heading"><h2 id="explanationTitle">Explanation</h2><span id="explanationType" class="badge"></span></div>
+            <p id="explanationMeaning"></p><p id="explanationEnglish"></p>
+            <dl><div><dt>Learning form</dt><dd id="learningForm"></dd></div><div><dt>Example</dt><dd><span id="exampleEn"></span><br><span id="exampleZh" class="muted"></span></dd></div></dl>
+            <button id="addWordbookButton" type="button">Add to Wordbook</button>
+          </section>
+          <p id="status" role="status" aria-live="polite"></p>
+        </article>
+      </section>
+      <section id="libraryView" class="view" hidden>
+        <div class="view-heading"><div><h2>Saved Library</h2><p>Posts saved in this Chrome profile.</p></div><button id="exportLibraryButton" type="button">Export Markdown</button></div>
+        <div id="libraryList" class="collection-list"></div>
+      </section>
+      <section id="wordbookView" class="view" hidden>
+        <div class="view-heading"><div><h2>Wordbook</h2><p>Words, phrases, expressions, and sentences.</p></div><button id="exportWordbookButton" type="button">Export Markdown</button></div>
+        <div id="wordbookList" class="collection-list"></div>
+      </section>
+      <footer><button id="exportSnapshotButton" class="text-button" type="button">Export complete snapshot</button></footer>
     </main>
+    <script src="learning-data.js"></script>
     <script src="sidepanel.js"></script>
   </body>
 </html>

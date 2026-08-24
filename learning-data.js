@@ -139,9 +139,10 @@
 
   function postToMarkdown(postValue) {
     const post = normalizePost(postValue);
+    const rawPost = postValue && typeof postValue === "object" ? postValue : {};
     const title = cleanText(post.text.split("\n")[0], 100) || `Post ${post.id}`;
-    const translation = cleanText(post.translationZh, LIMITS.postText);
-    const digest = post.digest && typeof post.digest === "object" ? validateDigestPayload(post.digest) : null;
+    const translation = cleanText(rawPost.translationZh, LIMITS.postText);
+    const digest = rawPost.digest && typeof rawPost.digest === "object" ? validateDigestPayload(rawPost.digest) : null;
     return [
       `## ${title}`,
       "",
