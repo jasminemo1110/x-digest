@@ -105,6 +105,18 @@ test("requires IPA for words and preserves conservative naturalness diagnoses", 
     type: "word",
     assessment: "as_is",
   }).learningForm, "strangely");
+  assert.equal(data.normalizeStoredExplanation({
+    selectedText: "Father of Information Theory.",
+    learningForm: "Father of Information Theory.",
+    type: "phrase",
+    assessment: "as_is",
+  }).learningForm, "Father of Information Theory");
+  assert.equal(data.normalizeStoredExplanation({
+    selectedText: "This is a complete sentence.",
+    learningForm: "This is a complete sentence.",
+    type: "sentence",
+    assessment: "as_is",
+  }).learningForm, "This is a complete sentence.");
 
   const legacy = data.normalizeStoredExplanation({
     selectedText: "quota",

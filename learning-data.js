@@ -153,7 +153,7 @@
 
   function normalizeLearningForm(value, type) {
     const cleaned = cleanText(value, LIMITS.selectedText);
-    if (type !== "word") return cleaned;
+    if (!["word", "phrase", "expression"].includes(type)) return cleaned;
     const withoutSelectionPunctuation = cleaned
       .replace(/^[\s"“”‘’([{]+/u, "")
       .replace(/[\s"“”‘’)\]}.,!?;:。！？；：，]+$/u, "");
