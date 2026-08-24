@@ -1,18 +1,23 @@
 .x-digest-inline-button {
   appearance: none;
-  background: transparent;
-  border: 0;
+  background: rgb(29, 155, 240);
+  border: 1px solid rgb(29, 155, 240);
   border-radius: 9999px;
-  color: rgb(83, 100, 113);
+  box-shadow: 0 2px 8px rgba(29, 155, 240, 0.24);
+  color: white;
   cursor: pointer;
-  font: 600 12px/1 system-ui, sans-serif;
+  font: 700 12px/1 system-ui, sans-serif;
   margin: 0 4px;
-  padding: 9px 10px;
+  padding: 8px 11px;
+  transition: background 120ms ease, box-shadow 120ms ease, transform 120ms ease;
 }
 
 .x-digest-inline-button:hover,
 .x-digest-inline-button:focus-visible {
-  background: rgba(29, 155, 240, 0.1);
-  color: rgb(29, 155, 240);
-  outline: none;
+  background: rgb(26, 140, 216);
+  box-shadow: 0 3px 10px rgba(29, 155, 240, 0.34);
+  color: white;
+  outline: 2px solid rgba(29, 155, 240, 0.3);
+  outline-offset: 2px;
+  transform: translateY(-1px);
 }

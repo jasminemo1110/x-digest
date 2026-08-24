@@ -29,18 +29,14 @@
           </div>
           <div id="originalBlock" class="reading-block"><p class="block-label">Original</p><p id="postText" tabindex="0"></p></div>
           <div id="translationBlock" class="reading-block" hidden><p class="block-label">中文</p><p id="translationText"></p></div>
-          <p id="selectionHint" class="selection-hint">Select text in the original post, then choose Explain.</p>
-          <div class="actions">
-            <button id="translateButton" type="button">Translate</button><button id="digestButton" type="button">Digest</button>
-            <button id="explainButton" type="button" disabled>Explain selection</button><button id="saveButton" class="secondary" type="button">Save post</button>
+          <p id="selectionHint" class="selection-hint">Select a word, phrase, or sentence to explain it.</p>
+          <div id="selectionToolbar" class="selection-toolbar" hidden>
+            <span id="selectionPreview"></span><button id="explainButton" type="button">Explain</button>
           </div>
-          <section id="digestCard" class="result-card" hidden><h2>Digest</h2><p id="digestSummary"></p><p id="digestTone" class="muted"></p><ul id="digestPoints"></ul></section>
-          <section id="explanationCard" class="result-card" hidden>
-            <div class="result-heading"><h2 id="explanationTitle">Explanation</h2><span id="explanationType" class="badge"></span></div>
-            <p id="explanationMeaning"></p><p id="explanationEnglish"></p>
-            <dl><div><dt>Learning form</dt><dd id="learningForm"></dd></div><div><dt>Example</dt><dd><span id="exampleEn"></span><br><span id="exampleZh" class="muted"></span></dd></div></dl>
-            <button id="addWordbookButton" type="button">Add to Wordbook</button>
-          </section>
+          <div class="actions">
+            <button id="digestButton" type="button">Summarize</button><button id="saveButton" class="secondary" type="button">Save post</button>
+          </div>
+          <section id="digestCard" class="result-card" hidden><h2>Summary</h2><p id="digestSummary"></p><p id="digestTone" class="muted"></p><ul id="digestPoints"></ul></section>
           <p id="status" role="status" aria-live="polite"></p>
         </article>
       </section>
@@ -54,6 +50,14 @@
       </section>
       <footer><button id="exportSnapshotButton" class="text-button" type="button">Export complete snapshot</button></footer>
     </main>
+    <div id="explanationOverlay" class="explanation-overlay" hidden>
+      <section id="explanationCard" class="explanation-dialog" role="dialog" aria-modal="true" aria-labelledby="explanationTitle">
+        <div class="result-heading"><div><h2 id="explanationTitle">Explanation</h2><span id="explanationType" class="badge"></span></div><button id="closeExplanationButton" class="close-button" type="button" aria-label="Close explanation">×</button></div>
+        <p id="explanationMeaning"></p><p id="explanationEnglish"></p>
+        <dl><div><dt>Learning form</dt><dd id="learningForm"></dd></div><div><dt>Example</dt><dd><span id="exampleEn"></span><br><span id="exampleZh" class="muted"></span></dd></div></dl>
+        <button id="addWordbookButton" type="button">Add to Wordbook</button>
+      </section>
+    </div>
     <script src="learning-data.js"></script>
     <script src="sidepanel.js"></script>
   </body>

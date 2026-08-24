@@ -36,7 +36,10 @@ function extractPost(article) {
 }
 
 function attachDigestButton(article) {
-  if (article.hasAttribute(PROCESSED_ATTRIBUTE)) return;
+  // X can replace an action bar while retaining the surrounding article.
+  // The old ready marker then survives even though our button is gone, so the
+  // button itself—not only the marker—is the source of truth.
+  if (firstOwned(article, ".x-digest-inline-button")) return;
 
   const post = extractPost(article);
   const actionGroup = [...article.querySelectorAll('[role="group"]')].find((group) =>

@@ -7,6 +7,7 @@ let activeExplanation = null;
 let selectedText = "";
 let collections = { posts: [], entries: [], cache: {} };
 let readingMode = "original";
+let translationPending = false;
 
 const $ = (id) => document.getElementById(id);
 
@@ -57,7 +58,7 @@ function renderDigest(value) {
 
 function renderExplanation(value) {
   activeExplanation = value || null;
-  $("explanationCard").hidden = !activeExplanation;
+  $("explanationOverlay").hidden = !activeExplanation;
   if (!activeExplanation) return;
   $("explanationTitle").textContent = activeExplanation.selectedText;
   $("explanationType").textContent = activeExplanation.type;
@@ -80,8 +81,8 @@ function render(post) {
   $("author").textContent = [post.authorName, post.handle].filter(Boolean).join(" ");
   $("postText").textContent = post.text;
   $("sourceLink").href = post.url;
-  $("explainButton").disabled = true;
-  $("selectionHint").textContent = "Select text in the original post, then choose Explain.";
+  $("selectionToolbar").hidden = true;
+  $("selectionHint").textContent = "Select a word, phrase, or sentence to explain it.";
   setStatus("");
 
   const cached = collections.cache?.[post.id] || {};
@@ -174,13 +175,12 @@ async function loadActivePost() {
 async function loadConfigStatus() {
   const config = await send("getConfigStatus");
   $("configNotice").hidden = config.hasApiKey;
-  $("configNotice").textContent = config.hasApiKey ? "" : "Add a DeepSeek API key in Settings to use Translate, Digest, and Explain. Saving and exports still work without it.";
+  $("configNotice").textContent = config.hasApiKey ? "" : "Add a DeepSeek API key in Settings to use Chinese/bilingual reading, Summarize, and Explain. Saving and exports still work without it.";
 }
 
 async function translateActivePost() {
-  if (!activePost || $("translateButton").disabled) return;
-  const button = $("translateButton");
-  setBusy(button, true, "Translating…");
+  if (!activePost || translationPending) return;
+  translationPending = true;
   setStatus("Translating this post…");
   try {
     const result = await send("translatePost", { post: activePost });
@@ -193,19 +193,19 @@ async function translateActivePost() {
     readingMode = "original";
     renderReadingMode();
     setStatus(error.message, true);
-  } finally { setBusy(button, false); }
+  } finally { translationPending = false; }
 }
 
 async function digestActivePost() {
   if (!activePost) return;
   const button = $("digestButton");
-  setBusy(button, true, "Digesting…");
-  setStatus("Creating a short Digest…");
+  setBusy(button, true, "Summarizing…");
+  setStatus("Creating a short summary…");
   try {
     const result = await send("digestPost", { post: activePost });
     renderDigest(result.value);
     collections.cache[activePost.id] = { ...(collections.cache[activePost.id] || {}), digest: result.value };
-    setStatus(result.cached ? "Loaded cached Digest." : "Digest ready.");
+    setStatus(result.cached ? "Loaded cached summary." : "Summary ready.");
   } catch (error) { setStatus(error.message, true); }
   finally { setBusy(button, false); }
 }
@@ -228,8 +228,8 @@ function captureSelection() {
   const text = XDG_LEARNING_DATA.cleanText(selection?.toString(), XDG_LEARNING_DATA.LIMITS.selectedText);
   if (!text || !selection?.rangeCount || !$("postText").contains(selection.getRangeAt(0).commonAncestorContainer)) return;
   selectedText = text;
-  $("explainButton").disabled = false;
-  $("selectionHint").textContent = `Selected: “${text.slice(0, 120)}${text.length > 120 ? "…" : ""}”`;
+  $("selectionPreview").textContent = `“${text.slice(0, 100)}${text.length > 100 ? "…" : ""}”`;
+  $("selectionToolbar").hidden = false;
 }
 
 function downloadMarkdown(filename, content) {
@@ -250,9 +250,15 @@ function switchView(viewName) {
 document.querySelectorAll(".tab-button").forEach((button) => button.addEventListener("click", () => switchView(button.dataset.view)));
 document.querySelectorAll(".mode-button").forEach((button) => button.addEventListener("click", () => { readingMode = button.dataset.mode; renderReadingMode(); }));
 $("settingsButton").addEventListener("click", () => chrome.runtime.openOptionsPage());
-$("translateButton").addEventListener("click", translateActivePost);
 $("digestButton").addEventListener("click", digestActivePost);
 $("explainButton").addEventListener("click", explainSelection);
+$("closeExplanationButton").addEventListener("click", () => renderExplanation(null));
+$("explanationOverlay").addEventListener("click", (event) => {
+  if (event.target === $("explanationOverlay")) renderExplanation(null);
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !$("explanationOverlay").hidden) renderExplanation(null);
+});
 $("postText").addEventListener("mouseup", captureSelection);
 $("postText").addEventListener("keyup", captureSelection);
 $("saveButton").addEventListener("click", async () => {
