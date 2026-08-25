@@ -10,6 +10,12 @@ V1 needs only one AI provider credential. X page text comes from the currently r
 
 The first supported provider is DeepSeek. Provider-specific endpoint, model, request fields, retry behavior, and errors stay inside `ai-provider.js`. A key from another provider is not interchangeable with a DeepSeek key; supporting another provider requires a matching adapter and Chrome host permission, while the page, library, and wordbook layers remain unchanged.
 
+## Translation architecture direction
+
+P1 already uses extension-owned segment IDs, strict response alignment, safe three-mode rendering, and local verified-result caching. Future reply, Thread, target-language, and long-surface work must build on those contracts instead of letting AI reconstruct product data or copying another extension's side panel wholesale.
+
+The detailed current baseline, invariants, cache evolution, batching boundary, and acceptance checklist live in [the X Digest translation architecture](TRANSLATION_ARCHITECTURE.md). It adapts lessons from YouTube Digest upstream `v1.2.0` while clearly separating verified X Digest behavior from future plans.
+
 ## V1 delivery stages
 
 ### P0 — Independent foundation
@@ -42,8 +48,10 @@ Acceptance: `see post → Digest → translate/explain → save → export Markd
 
 - Identify the conversation root, direct parent, and current reply.
 - Deduplicate root when it is also the direct parent.
+- Represent `root → direct parent → current reply` as an extension-owned context group with stable post and segment IDs.
 - Feed only `root → direct parent → current reply` to AI.
 - Clearly mark partial or unavailable context; never invent missing content.
+- Preserve handles, URLs, hashtags, code, and significant numbers according to adapter policy.
 - Store the minimal supporting context with saved replies and wordbook records.
 
 Acceptance: a nested reply receives a context-aware explanation, and missing parents are disclosed rather than guessed.
@@ -52,6 +60,7 @@ Acceptance: a nested reply receives a context-aware explanation, and missing par
 
 - Capture replies observed during the current conversation-page session.
 - Deduplicate by status ID and exclude root, promotions, and invalid cards.
+- Translate or analyze long loaded surfaces in small sequential batches with request-generation protection against late responses.
 - “Summarize loaded replies” with an explicit analyzed count.
 - Summarize consensus, disagreement, representative views, questions, tone, and useful English expressions.
 - Detect same-author loaded Thread items and show the analyzed item count.
@@ -62,6 +71,8 @@ Acceptance: results always say how many captured items were analyzed and never c
 
 - Handle X client-side navigation, infinite scrolling, DOM recycling, expanded replies, and long-post truncation.
 - Validate AI JSON, length-limit fields, and escape rendered content.
+- Add source-text hashes and versioned cache identities before target-language or translation-policy expansion.
+- Discard late translation results after post, mode, language, or request-generation changes.
 - Preserve local saves when AI calls fail or no key is configured.
 - Bilingual settings, privacy/security documentation, packaging checks, and real-page regression checklist.
 - Explicit unsupported states for X Articles, media-only posts, deleted/private content, and incomplete threads.
