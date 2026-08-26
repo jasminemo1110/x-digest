@@ -46,7 +46,7 @@ Acceptance: `see post → Digest → translate/explain → save → export Markd
 
 ### P1.5 — Local search, continuity, and recovery
 
-Status: next iteration. Complete this stage before reply-context work begins.
+Status: completed for `v0.2.0` with automated coverage and manual unpacked-extension verification of local bilingual search, panel closing outside X, per-post Reader position restoration, JSON export, and merge restoration.
 
 Implement in this order:
 
@@ -71,7 +71,7 @@ Implement in this order:
    a safety copy before any replacement path.
 5. **P1.5 release polish.** Cover search, navigation, position restoration, and
    backup failure states with automated tests; verify the unpacked extension on
-   real X pages; then package a documented GitHub release.
+   real X pages; then prepare a documented GitHub release.
 
 Acceptance: a user can find previously saved English or Chinese material without
 AI, leave and return to a long post without losing their place, and recover the

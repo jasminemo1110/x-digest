@@ -12,6 +12,7 @@ When you use a feature, the extension may handle:
 - text you explicitly select and the visible post context needed to explain it;
 - AI-generated translations, summaries, explanations, and request timing information;
 - Library and Wordbook records you choose to save;
+- per-post Reader positions and local search queries used only in the open side panel;
 - the DeepSeek API key you enter in settings.
 
 X Digest does not request or read your X password, login token, cookies, official Bookmarks, Likes, private archive, or account history. It does not call the X API.
@@ -26,7 +27,9 @@ If a structured AI response cannot be parsed or validated, X Digest may make one
 
 ## Local storage
 
-Settings, your API key, Library records, Wordbook records, and cached learning results are stored in `chrome.storage.local` in your current Chrome profile. They remain there until you remove them, clear the extension's storage, uninstall the extension, or delete the relevant Chrome profile.
+Settings, your API key, Library records, Wordbook records, Reader positions, and cached learning results are stored in `chrome.storage.local` in your current Chrome profile. They remain there until you remove them, clear the extension's storage, uninstall the extension, or delete the relevant Chrome profile.
+
+JSON backups contain Library, Wordbook, compatible cached learning results, and Reader positions. They never contain the DeepSeek API key. Restore validates the backup before writing, merges by stable record ID instead of deleting unrelated records, and downloads a pre-restore safety backup first. Incompatible legacy AI cache may be omitted because it can be regenerated; Library and Wordbook records remain included.
 
 Performance logs contain action names and elapsed times only. They do not contain post text, selected text, saved records, or API keys.
 
@@ -36,12 +39,13 @@ X Digest requests only permissions needed for its current features:
 
 - `sidePanel` to show the reading and learning interface;
 - `storage` to keep settings and learning records locally;
+- `tabs` to check whether the active or navigating tab is still on X, so the side panel can close outside X. X Digest does not save tab titles, tab URLs, or browsing history;
 - host access to `x.com` and `twitter.com` to recognize rendered posts;
 - host access to DeepSeek to make user-triggered AI requests.
 
 ## Removing your data
 
-You can remove individual Library or Wordbook records inside the extension. To remove all local X Digest data, clear the extension's site data in Chrome or uninstall the extension. Before clearing data, export Markdown if you want to keep a copy.
+You can remove individual Library or Wordbook records inside the extension. To remove all local X Digest data, clear the extension's site data in Chrome or uninstall the extension. Before clearing data, export JSON if you need a restorable copy; Markdown exports remain intended for human-readable archives and cannot restore extension state.
 
 ## Changes
 

@@ -23,11 +23,19 @@ X is full of lively, current English—but useful expressions are easy to lose i
 
 ## Current release
 
-This repository is the **P1 public beta (`v0.1.0`)**. The core single-post learning loop has been tested as an unpacked extension on real X home, detail, long-post, and reply views. X changes its page structure frequently, so edge cases may still appear.
+This repository is the **P1.5 public beta (`v0.2.0`)**. The core single-post learning loop, local bilingual search, reading-position continuity, side-panel lifecycle, and JSON recovery flow have been tested as an unpacked extension on real X pages. X changes its page structure frequently, so edge cases may still appear.
 
 The extension is not yet published in the Chrome Web Store. Install it locally from this repository.
 
 See [the roadmap](docs/ROADMAP.md) for the current boundary and P2 ideas.
+
+### New in v0.2.0
+
+- Search saved Library and Wordbook material in English or Chinese without an AI call.
+- Restore the Reader position independently for each long post.
+- Close X Digest automatically when the active tab leaves X.
+- Export a lossless, schema-versioned JSON backup and merge it back safely later.
+- Download a pre-restore safety backup automatically; incompatible legacy AI cache never blocks Library or Wordbook recovery.
 
 ## Screenshots
 
@@ -110,7 +118,8 @@ The key is stored in `chrome.storage.local` in your current Chrome profile. Neve
 4. Select a word or expression, then click the floating **Explain** button.
 5. Save the explanation to the Wordbook if it is useful.
 6. Use **Save Post** for a whole post, or select an excerpt on X and press `N`.
-7. Open **Library** or **Wordbook** and export Markdown when needed.
+7. Search **Library** or **Wordbook** locally in English or Chinese.
+8. Export Markdown for reading, or use **Back up JSON** when you need a restorable copy.
 
 ## What works today
 
@@ -120,7 +129,11 @@ The key is stored in `chrome.storage.local` in your current Chrome profile. Neve
 - Naturalness checks, suggested corrections, IPA for words, usage, and examples
 - Whole-post and selected-excerpt bilingual saves
 - Local Library and Wordbook with duplicate handling
+- Case-insensitive English and literal Chinese search across saved learning material
 - Markdown exports for Library, Wordbook, and a complete snapshot
+- Lossless JSON backup and non-destructive merge restore; the API key is never exported
+- Per-post Reader position restoration for long posts
+- Automatic side-panel closing after leaving X
 - Clear missing-key, authentication, rate-limit, network, and timeout errors
 - One automatic format-only repair attempt for malformed structured AI output
 - Warm-up and progress feedback to reduce the perceived delay of a first AI request
@@ -138,6 +151,7 @@ It does not currently support automatic bookmark sync, full-timeline collection,
 - No X Digest backend server
 - AI requests happen only after a user action and are sent directly to DeepSeek
 - Settings, saved records, and the API key remain in the current Chrome profile
+- JSON backups contain learning records, compatible cache, and Reader positions, but never the API key
 - Performance logs contain action names and timings, not post text or keys
 - Library and Wordbook each retain up to 1,000 records; X Digest warns at 950 records or 90% of Chrome's local storage quota so you can export a complete snapshot before older records are replaced
 

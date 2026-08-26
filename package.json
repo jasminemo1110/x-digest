@@ -1,6 +1,6 @@
 {
   "name": "x-digest",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Contextual English learning for posts, threads, and replies on X.",
   "license": "MIT",
