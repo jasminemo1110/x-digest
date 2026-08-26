@@ -96,13 +96,24 @@ test("merges by stable ID without deleting unrelated local records", () => {
     text: "Another saved post.",
   };
   const merged = backups.mergeBackupData(
-    { library: [POST, otherPost], wordbook: [], aiCache: {}, readerPositions: {} },
+    {
+      library: [POST, otherPost],
+      wordbook: [],
+      aiCache: {
+        [POST.id]: {
+          translation: { translationZh: "旧版缓存没有对齐分段。" },
+          updatedAt: "2026-08-24T00:00:00.000Z",
+        },
+      },
+      readerPositions: {},
+    },
     { library: [newerPost], wordbook: [ENTRY], aiCache: {}, readerPositions: {} },
   );
   assert.equal(merged.library.length, 2);
   assert.equal(merged.library.find((item) => item.recordId === POST.recordId).translationZh, "更新后的翻译。");
   assert.ok(merged.library.some((item) => item.recordId === otherPost.recordId));
   assert.equal(merged.wordbook.length, 1);
+  assert.deepEqual(merged.aiCache, {});
 });
 
 test("preserves incoming record order and keeps the newest timed state", () => {

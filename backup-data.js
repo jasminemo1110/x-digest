@@ -219,10 +219,11 @@
   function mergeBackupData(currentValue, incomingValue) {
     const incoming = validateData(incomingValue);
     const current = currentValue && typeof currentValue === "object" ? currentValue : {};
+    const compatibleCurrentCache = sanitizeCacheForExport(current.aiCache).cache;
     return {
       library: mergeRecords(current.library, incoming.library),
       wordbook: mergeRecords(current.wordbook, incoming.wordbook),
-      aiCache: mergeTimedObjects(current.aiCache, incoming.aiCache, 200, validateCache),
+      aiCache: mergeTimedObjects(compatibleCurrentCache, incoming.aiCache, 200, validateCache),
       readerPositions: mergeTimedObjects(
         current.readerPositions,
         incoming.readerPositions,
