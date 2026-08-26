@@ -586,7 +586,7 @@ function backupFilename(prefix = "x-digest-backup") {
 async function exportJsonBackup(filename = backupFilename()) {
   const result = await send("exportJsonBackup");
   downloadJson(filename, result.backup);
-  return result.backup;
+  return result;
 }
 
 async function restoreJsonFile(file) {
@@ -713,8 +713,10 @@ $("exportSnapshotButton").addEventListener("click", () => downloadMarkdown("x-di
 $("exportJsonButton").addEventListener("click", async () => {
   $("backupStatus").textContent = "Preparing JSON backup…";
   try {
-    await exportJsonBackup();
-    $("backupStatus").textContent = "JSON backup downloaded. API Key was not included.";
+    const result = await exportJsonBackup();
+    $("backupStatus").textContent = result.skippedCacheCount
+      ? `JSON backup downloaded. ${result.skippedCacheCount} incompatible legacy AI cache ${result.skippedCacheCount === 1 ? "entry was" : "entries were"} skipped; Library and Wordbook are complete. API Key was not included.`
+      : "JSON backup downloaded. API Key was not included.";
   } catch (error) {
     $("backupStatus").textContent = error.message;
   }

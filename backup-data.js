@@ -96,6 +96,22 @@
       .slice(0, 200));
   }
 
+  function sanitizeCacheForExport(value = {}) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return { cache: {}, skipped: 0 };
+    }
+    const cache = {};
+    let skipped = 0;
+    for (const [postId, raw] of Object.entries(value)) {
+      try {
+        Object.assign(cache, validateCache({ [postId]: raw }));
+      } catch (_) {
+        skipped += 1;
+      }
+    }
+    return { cache: validateCache(cache), skipped };
+  }
+
   function validateData(value = {}) {
     if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Backup data is missing.");
     const posts = Array.isArray(value.library) ? value.library : [];
@@ -128,16 +144,29 @@
       application: APPLICATION,
       schemaVersion: SCHEMA_VERSION,
       exportedAt: cleanTimestamp(value.exportedAt) || new Date().toISOString(),
+      metadata: {
+        skippedIncompatibleCacheEntries: Math.max(
+          0,
+          Math.min(200, Math.floor(Number(value.metadata?.skippedIncompatibleCacheEntries) || 0)),
+        ),
+      },
       data: validateData(value.data),
     };
   }
 
   function createBackup(data, exportedAt = new Date().toISOString()) {
+    const sanitizedCache = sanitizeCacheForExport(data?.aiCache);
     return validateBackup({
       application: APPLICATION,
       schemaVersion: SCHEMA_VERSION,
       exportedAt,
-      data,
+      metadata: { skippedIncompatibleCacheEntries: sanitizedCache.skipped },
+      data: {
+        library: data?.library,
+        wordbook: data?.wordbook,
+        aiCache: sanitizedCache.cache,
+        readerPositions: data?.readerPositions,
+      },
     });
   }
 

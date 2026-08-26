@@ -52,11 +52,38 @@ test("round-trips a schema-versioned learning backup without credentials", () =>
   assert.doesNotMatch(serialized, /must-not-export|apiKey/);
 });
 
+test("skips incompatible legacy AI cache during export without losing learning records", () => {
+  const backup = backups.createBackup({
+    library: [POST],
+    wordbook: [ENTRY],
+    aiCache: {
+      [POST.id]: {
+        translation: { translationZh: "旧版缓存没有对齐分段。" },
+        updatedAt: "2026-08-24T00:00:00.000Z",
+      },
+    },
+    readerPositions: {},
+  });
+  assert.equal(backup.metadata.skippedIncompatibleCacheEntries, 1);
+  assert.deepEqual(backup.data.aiCache, {});
+  assert.equal(backup.data.library.length, 1);
+  assert.equal(backup.data.wordbook.length, 1);
+});
+
 test("rejects unsupported, duplicate, and malformed backup records", () => {
   assert.throws(() => backups.parseBackup("not json"), /not valid JSON/);
   assert.throws(() => backups.validateBackup({ application: "x-digest", schemaVersion: 2, data: {} }), /not supported/);
   assert.throws(() => backups.createBackup({ library: [{ ...POST, recordId: "wrong" }], wordbook: [] }), /invalid Library post ID/);
   assert.throws(() => backups.createBackup({ library: [POST, POST], wordbook: [] }), /duplicate Library/);
+  assert.throws(() => backups.validateBackup({
+    application: "x-digest",
+    schemaVersion: 1,
+    data: {
+      library: [],
+      wordbook: [],
+      aiCache: { [POST.id]: { translation: { translationZh: "missing segments" } } },
+    },
+  }), /incomplete translation cache/);
 });
 
 test("merges by stable ID without deleting unrelated local records", () => {

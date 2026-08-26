@@ -235,8 +235,14 @@ async function handleAction(message) {
         storageQuotaBytes: chrome.storage.local.QUOTA_BYTES || 10 * 1024 * 1024,
       };
     }
-    case "exportJsonBackup":
-      return { success: true, backup: XDG_BACKUP_DATA.createBackup(await readBackupData()) };
+    case "exportJsonBackup": {
+      const backup = XDG_BACKUP_DATA.createBackup(await readBackupData());
+      return {
+        success: true,
+        backup,
+        skippedCacheCount: backup.metadata.skippedIncompatibleCacheEntries,
+      };
+    }
     case "restoreJsonBackup":
       return { success: true, ...(await restoreBackup(message.backup)) };
     case "deleteSavedPost": {
