@@ -325,6 +325,58 @@
       : "";
   }
 
+  function findLiteralMatches(value, queryValue) {
+    const text = typeof value === "string" ? value : "";
+    const query = cleanText(queryValue, 200);
+    if (!text || !query) return [];
+    const haystack = text.toLocaleLowerCase("en-US");
+    const needle = query.toLocaleLowerCase("en-US");
+    const matches = [];
+    let start = 0;
+    while (start <= haystack.length - needle.length) {
+      const index = haystack.indexOf(needle, start);
+      if (index < 0) break;
+      matches.push({ start: index, end: index + needle.length });
+      start = index + needle.length;
+    }
+    return matches;
+  }
+
+  function collectionSearchText(kind, value = {}) {
+    if (kind === "library") {
+      const digest = value.digest && typeof value.digest === "object" ? value.digest : {};
+      return [
+        value.text,
+        value.translationZh,
+        value.authorName,
+        value.handle,
+        digest.summaryZh,
+        digest.toneZh,
+        ...(Array.isArray(digest.keyPointsZh) ? digest.keyPointsZh : []),
+      ].map((part) => cleanText(part, LIMITS.postText)).filter(Boolean).join("\n");
+    }
+    if (kind === "wordbook") {
+      const explanation = normalizeStoredExplanation(value);
+      return [
+        explanation.rawSelectedText,
+        explanation.learningForm,
+        explanation.pronunciation,
+        explanation.meaningZh,
+        explanation.explanationEn,
+        explanation.usageZh,
+        explanation.exampleEn,
+        explanation.exampleZh,
+      ].filter(Boolean).join("\n");
+    }
+    return "";
+  }
+
+  function collectionMatchesQuery(kind, value, queryValue) {
+    const query = cleanText(queryValue, 200);
+    if (!query) return true;
+    return findLiteralMatches(collectionSearchText(kind, value), query).length > 0;
+  }
+
   function postToMarkdown(postValue) {
     const post = normalizePost(postValue);
     const rawPost = postValue && typeof postValue === "object" ? postValue : {};
@@ -415,6 +467,9 @@
     completeSnapshotToMarkdown,
     markdownTitle,
     storageWarning,
+    findLiteralMatches,
+    collectionSearchText,
+    collectionMatchesQuery,
   };
   root.XDG_LEARNING_DATA = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;

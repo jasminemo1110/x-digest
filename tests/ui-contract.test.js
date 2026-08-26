@@ -94,6 +94,20 @@ test("warns before local storage or collection limits are reached", () => {
   assert.match(script, /storageWarning\(/);
 });
 
+test("filters Library and Wordbook with accessible local bilingual search", () => {
+  const html = read("sidepanel.html");
+  const script = read("sidepanel.js");
+  const css = read("sidepanel.css");
+  assert.match(html, /id="librarySearchInput"[^>]*aria-controls="libraryList"/);
+  assert.match(html, /id="wordbookSearchInput"[^>]*aria-controls="wordbookList"/);
+  assert.match(html, /id="librarySearchCount"[^>]*aria-live="polite"/);
+  assert.match(script, /collectionMatchesQuery\("library"/);
+  assert.match(script, /collectionMatchesQuery\("wordbook"/);
+  assert.match(script, /event\.key !== "Escape"/);
+  assert.match(script, /document\.createElement\("mark"\)/);
+  assert.match(css, /\.search-highlight/);
+});
+
 test("retires an Explain selection after opening and closing its result", () => {
   const script = read("sidepanel.js");
   assert.match(script, /function clearSelectionState\(\)/);

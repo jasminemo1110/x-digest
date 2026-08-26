@@ -44,10 +44,20 @@
       </section>
       <section id="libraryView" class="view" hidden>
         <div class="view-heading"><div><h2>Saved Library</h2><p>Posts saved in this Chrome profile.</p></div><button id="exportLibraryButton" type="button">Export Markdown</button></div>
+        <div class="collection-search">
+          <input id="librarySearchInput" type="search" aria-label="Search saved Library" aria-controls="libraryList" placeholder="Search English or 中文">
+          <button id="librarySearchClear" class="text-button" type="button" hidden>Clear</button>
+        </div>
+        <p id="librarySearchCount" class="search-count" role="status" aria-live="polite"></p>
         <div id="libraryList" class="collection-list"></div>
       </section>
       <section id="wordbookView" class="view" hidden>
         <div class="view-heading"><div><h2>Wordbook</h2><p>Words, phrases, expressions, and sentences.</p></div><button id="exportWordbookButton" type="button">Export Markdown</button></div>
+        <div class="collection-search">
+          <input id="wordbookSearchInput" type="search" aria-label="Search Wordbook" aria-controls="wordbookList" placeholder="Search English or 中文">
+          <button id="wordbookSearchClear" class="text-button" type="button" hidden>Clear</button>
+        </div>
+        <p id="wordbookSearchCount" class="search-count" role="status" aria-live="polite"></p>
         <div id="wordbookList" class="collection-list"></div>
       </section>
       <footer><button id="exportSnapshotButton" class="text-button" type="button">Export complete snapshot</button></footer>

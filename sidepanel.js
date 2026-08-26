@@ -11,6 +11,8 @@ let translationPending = false;
 let selectedRange = null;
 let explanationRequestId = 0;
 let excerptSavePending = false;
+let librarySearchQuery = "";
+let wordbookSearchQuery = "";
 
 const $ = (id) => document.getElementById(id);
 
@@ -226,36 +228,89 @@ function createDeleteButton(action, payload) {
   return button;
 }
 
+function appendHighlightedText(node, value, query) {
+  const text = typeof value === "string" ? value : "";
+  const matches = XDG_LEARNING_DATA.findLiteralMatches(text, query);
+  if (!matches.length) {
+    node.textContent = text;
+    return;
+  }
+  const parts = [];
+  let cursor = 0;
+  for (const match of matches) {
+    if (match.start > cursor) parts.push(document.createTextNode(text.slice(cursor, match.start)));
+    const mark = document.createElement("mark");
+    mark.className = "search-highlight";
+    mark.textContent = text.slice(match.start, match.end);
+    parts.push(mark);
+    cursor = match.end;
+  }
+  if (cursor < text.length) parts.push(document.createTextNode(text.slice(cursor)));
+  node.replaceChildren(...parts);
+}
+
+function updateSearchSummary(kind, query, shown, total) {
+  const prefix = kind === "library" ? "Library" : "Wordbook";
+  $(`${kind}SearchClear`).hidden = !query;
+  $(`${kind}SearchCount`).textContent = query
+    ? `${shown} of ${total} ${prefix} records match “${query}”.`
+    : `${total} ${prefix} record${total === 1 ? "" : "s"}.`;
+}
+
+function digestSearchContext(post, query) {
+  if (!query || !post?.digest || typeof post.digest !== "object") return "";
+  const fields = [
+    post.digest.summaryZh,
+    post.digest.toneZh,
+    ...(Array.isArray(post.digest.keyPointsZh) ? post.digest.keyPointsZh : []),
+  ].filter((value) => XDG_LEARNING_DATA.findLiteralMatches(value, query).length);
+  return fields.join(" · ");
+}
+
 function renderCollections() {
   $("libraryCount").textContent = String(collections.posts.length);
   $("wordbookCount").textContent = String(collections.entries.length);
 
-  const libraryNodes = collections.posts.map((post) => {
+  const matchingPosts = collections.posts.filter((post) => (
+    XDG_LEARNING_DATA.collectionMatchesQuery("library", post, librarySearchQuery)
+  ));
+  updateSearchSummary("library", librarySearchQuery, matchingPosts.length, collections.posts.length);
+  const libraryNodes = matchingPosts.map((post) => {
     const card = document.createElement("article");
     card.className = "collection-card";
     const author = document.createElement("strong");
-    author.textContent = [post.authorName, post.handle].filter(Boolean).join(" ") || "Unknown author";
+    appendHighlightedText(author, [post.authorName, post.handle].filter(Boolean).join(" ") || "Unknown author", librarySearchQuery);
     const kind = document.createElement("span");
     kind.className = "badge library-kind";
     kind.textContent = post.kind === "excerpt" ? "Excerpt" : "Post";
     const text = document.createElement("p");
     text.className = "library-original";
-    text.textContent = post.text;
+    appendHighlightedText(text, post.text, librarySearchQuery);
     const translation = document.createElement("p");
     translation.className = "library-translation";
-    translation.textContent = post.translationZh || "";
+    appendHighlightedText(translation, post.translationZh || "", librarySearchQuery);
     translation.hidden = !post.translationZh;
+    const matchedDigest = digestSearchContext(post, librarySearchQuery);
+    const searchContext = document.createElement("p");
+    searchContext.className = "search-match-context";
+    appendHighlightedText(searchContext, matchedDigest, librarySearchQuery);
+    searchContext.hidden = !matchedDigest;
     const controls = document.createElement("div");
     controls.className = "card-controls";
     const open = document.createElement("a");
     Object.assign(open, { href: post.url, target: "_blank", rel: "noreferrer", textContent: "Open on X" });
     controls.append(open, createDeleteButton("deleteSavedPost", { recordId: post.recordId }));
-    card.append(author, kind, text, translation, controls);
+    card.append(author, kind, text, translation, searchContext, controls);
     return card;
   });
-  $("libraryList").replaceChildren(...(libraryNodes.length ? libraryNodes : [collectionEmpty("No saved posts yet.")]));
+  const libraryEmpty = librarySearchQuery ? `No Library matches for “${librarySearchQuery}”.` : "No saved posts yet.";
+  $("libraryList").replaceChildren(...(libraryNodes.length ? libraryNodes : [collectionEmpty(libraryEmpty)]));
 
-  const wordbookNodes = collections.entries.map((entry) => {
+  const matchingEntries = collections.entries.filter((entry) => (
+    XDG_LEARNING_DATA.collectionMatchesQuery("wordbook", entry, wordbookSearchQuery)
+  ));
+  updateSearchSummary("wordbook", wordbookSearchQuery, matchingEntries.length, collections.entries.length);
+  const wordbookNodes = matchingEntries.map((entry) => {
     const explanationValue = XDG_LEARNING_DATA.normalizeStoredExplanation(entry);
     const card = document.createElement("article");
     card.className = "collection-card wordbook-card";
@@ -264,10 +319,10 @@ function renderCollections() {
     const term = document.createElement("div");
     term.className = "wordbook-term";
     const title = document.createElement("strong");
-    title.textContent = explanationValue.learningForm || explanationValue.rawSelectedText || "Untitled expression";
+    appendHighlightedText(title, explanationValue.learningForm || explanationValue.rawSelectedText || "Untitled expression", wordbookSearchQuery);
     const pronunciation = document.createElement("span");
     pronunciation.className = "pronunciation";
-    pronunciation.textContent = explanationValue.pronunciation;
+    appendHighlightedText(pronunciation, explanationValue.pronunciation, wordbookSearchQuery);
     term.append(title, pronunciation);
     const badges = document.createElement("div");
     badges.className = "term-badges";
@@ -282,26 +337,26 @@ function renderCollections() {
     heading.append(term, badges);
     const raw = document.createElement("p");
     raw.className = "raw-selection";
-    raw.textContent = `Selected: ${explanationValue.rawSelectedText}`;
+    appendHighlightedText(raw, `Selected: ${explanationValue.rawSelectedText}`, wordbookSearchQuery);
     raw.hidden = explanationValue.assessment !== "corrected" ||
       !textDiffers(explanationValue.rawSelectedText, explanationValue.learningForm);
     const meaning = document.createElement("p");
     meaning.className = "wordbook-meaning";
-    meaning.textContent = explanationValue.meaningZh;
+    appendHighlightedText(meaning, explanationValue.meaningZh, wordbookSearchQuery);
     const explanation = document.createElement("p");
     explanation.className = "wordbook-explanation muted";
-    explanation.textContent = explanationValue.explanationEn;
+    appendHighlightedText(explanation, explanationValue.explanationEn, wordbookSearchQuery);
     const usage = document.createElement("p");
     usage.className = "usage-note";
-    usage.textContent = explanationValue.usageZh ? `Usage: ${explanationValue.usageZh}` : "";
+    appendHighlightedText(usage, explanationValue.usageZh ? `Usage: ${explanationValue.usageZh}` : "", wordbookSearchQuery);
     usage.hidden = !explanationValue.usageZh;
     const example = document.createElement("div");
     example.className = "example-card compact";
     const exampleEn = document.createElement("div");
-    exampleEn.textContent = explanationValue.exampleEn;
+    appendHighlightedText(exampleEn, explanationValue.exampleEn, wordbookSearchQuery);
     const exampleZh = document.createElement("div");
     exampleZh.className = "muted";
-    exampleZh.textContent = explanationValue.exampleZh;
+    appendHighlightedText(exampleZh, explanationValue.exampleZh, wordbookSearchQuery);
     example.append(exampleEn, exampleZh);
     example.hidden = !explanationValue.exampleEn && !explanationValue.exampleZh;
     const controls = document.createElement("div");
@@ -312,7 +367,8 @@ function renderCollections() {
     card.append(heading, raw, meaning, explanation, usage, example, controls);
     return card;
   });
-  $("wordbookList").replaceChildren(...(wordbookNodes.length ? wordbookNodes : [collectionEmpty("No Wordbook entries yet.")]));
+  const wordbookEmpty = wordbookSearchQuery ? `No Wordbook matches for “${wordbookSearchQuery}”.` : "No Wordbook entries yet.";
+  $("wordbookList").replaceChildren(...(wordbookNodes.length ? wordbookNodes : [collectionEmpty(wordbookEmpty)]));
 }
 
 async function loadCollections() {
@@ -475,7 +531,31 @@ function switchView(viewName) {
   document.querySelectorAll(".tab-button").forEach((button) => button.classList.toggle("active", button.dataset.view === viewName));
 }
 
+function setupCollectionSearch(kind) {
+  const input = $(`${kind}SearchInput`);
+  const clear = $(`${kind}SearchClear`);
+  const applyQuery = () => {
+    const query = XDG_LEARNING_DATA.cleanText(input.value, 200);
+    if (kind === "library") librarySearchQuery = query;
+    else wordbookSearchQuery = query;
+    renderCollections();
+  };
+  input.addEventListener("input", applyQuery);
+  input.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    input.value = "";
+    applyQuery();
+  });
+  clear.addEventListener("click", () => {
+    input.value = "";
+    applyQuery();
+    input.focus();
+  });
+}
+
 document.querySelectorAll(".tab-button").forEach((button) => button.addEventListener("click", () => switchView(button.dataset.view)));
+setupCollectionSearch("library");
+setupCollectionSearch("wordbook");
 document.querySelectorAll(".mode-button").forEach((button) => button.addEventListener("click", () => { readingMode = button.dataset.mode; renderReadingMode(); }));
 $("settingsButton").addEventListener("click", () => chrome.runtime.openOptionsPage());
 $("digestButton").addEventListener("click", digestActivePost);

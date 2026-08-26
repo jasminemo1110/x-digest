@@ -173,3 +173,26 @@ test("warns near storage or collection limits without warning early", () => {
   assert.match(data.storageWarning({ libraryCount: 950, wordbookCount: 949 }), /Library has 950 of 1000/);
   assert.match(data.storageWarning({ libraryCount: 950, wordbookCount: 960 }), /Wordbook has 960 of 1000/);
 });
+
+test("searches Library and Wordbook locally across English and Chinese fields", () => {
+  const library = {
+    ...POST,
+    translationZh: "这是一个出乎意料地公允的观点。",
+    digest: { summaryZh: "作者赞同这个观点。", toneZh: "冷静", keyPointsZh: ["值得继续讨论"] },
+  };
+  assert.equal(data.collectionMatchesQuery("library", library, "FAIR TAKE"), true);
+  assert.equal(data.collectionMatchesQuery("library", library, "赞同"), true);
+  assert.equal(data.collectionMatchesQuery("library", library, "不存在"), false);
+  assert.equal(data.collectionMatchesQuery("wordbook", EXPLANATION, "BALANCED"), true);
+  assert.equal(data.collectionMatchesQuery("wordbook", EXPLANATION, "公允"), true);
+  assert.deepEqual(data.findLiteralMatches("Agent AGENT agent", "agent"), [
+    { start: 0, end: 5 },
+    { start: 6, end: 11 },
+    { start: 12, end: 17 },
+  ]);
+  assert.deepEqual(data.findLiteralMatches("人工智能帮助学习，人工智能也需要语境。", "人工智能"), [
+    { start: 0, end: 4 },
+    { start: 9, end: 13 },
+  ]);
+  assert.deepEqual(data.findLiteralMatches("A.B and ACB", "A.B"), [{ start: 0, end: 3 }]);
+});

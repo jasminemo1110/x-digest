@@ -97,6 +97,14 @@ dd { margin: 3px 0 0; }
 .view-heading { align-items: flex-start; margin-bottom: 14px; }
 .view-heading p { font-size: 12px; margin: 4px 0 0; }
 .view-heading button { flex: none; font-size: 12px; }
+.collection-search { align-items: center; background: var(--panel); border: 1px solid var(--border); border-radius: 999px; display: flex; gap: 6px; margin-bottom: 6px; padding: 3px 7px 3px 12px; }
+.collection-search:focus-within { border-color: rgba(22, 139, 210, .65); box-shadow: 0 0 0 3px rgba(22, 139, 210, .1); }
+.collection-search input { background: transparent; border: 0; color: var(--text); flex: 1; font: inherit; font-size: 13px; min-width: 0; outline: 0; padding: 7px 0; }
+.collection-search input::placeholder { color: #939a9d; }
+.collection-search .text-button { font-size: 12px; padding: 6px 8px; }
+.search-count { color: var(--muted); font-size: 11px; margin: 0 4px 10px; min-height: 17px; }
+.search-highlight { background: #ffe58f; border-radius: 2px; color: inherit; padding: 0; }
+.search-match-context { background: #f8f4ec; border-left: 3px solid #dfd6c3; color: var(--muted); font-size: 12px; padding: 8px 10px; }
 .collection-list { display: grid; gap: 10px; }
 .collection-card { background: var(--panel); border: 1px solid var(--border); border-radius: 13px; box-shadow: 0 4px 16px rgba(75, 65, 48, .05); padding: 13px; }
 .collection-card p { line-height: 1.5; margin: 9px 0; white-space: pre-wrap; }
