@@ -13,6 +13,12 @@ let explanationRequestId = 0;
 let excerptSavePending = false;
 let librarySearchQuery = "";
 let wordbookSearchQuery = "";
+let currentView = "reader";
+let readerPositionSaveTimer = 0;
+let readerPositionRequestId = 0;
+let suppressReaderPositionSave = false;
+
+const READER_POSITIONS_KEY = "xdg_reader_positions";
 
 const $ = (id) => document.getElementById(id);
 
@@ -181,7 +187,43 @@ function closeExplanation() {
   clearSelectionState();
 }
 
+async function persistReaderPosition(postId, scrollY) {
+  if (!postId) return;
+  const stored = await chrome.storage.local.get(READER_POSITIONS_KEY);
+  const positions = XDG_READER_STATE.updatePosition(
+    stored[READER_POSITIONS_KEY],
+    postId,
+    scrollY,
+  );
+  await chrome.storage.local.set({ [READER_POSITIONS_KEY]: positions });
+}
+
+function saveCurrentReaderPosition() {
+  if (!activePost?.id || currentView !== "reader" || suppressReaderPositionSave) return;
+  void persistReaderPosition(activePost.id, window.scrollY);
+}
+
+async function restoreReaderPosition(postId) {
+  const requestId = ++readerPositionRequestId;
+  suppressReaderPositionSave = true;
+  window.scrollTo(0, 0);
+  const stored = await chrome.storage.local.get(READER_POSITIONS_KEY);
+  const position = XDG_READER_STATE.positionFor(stored[READER_POSITIONS_KEY], postId);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (requestId !== readerPositionRequestId || activePost?.id !== postId || currentView !== "reader") return;
+    window.scrollTo(0, position);
+    suppressReaderPositionSave = false;
+  }));
+}
+
+function scheduleReaderPositionSave() {
+  if (suppressReaderPositionSave || currentView !== "reader" || !activePost?.id) return;
+  clearTimeout(readerPositionSaveTimer);
+  readerPositionSaveTimer = setTimeout(saveCurrentReaderPosition, 250);
+}
+
 function render(post) {
+  saveCurrentReaderPosition();
   explanationRequestId += 1;
   activePost = post || null;
   activeTranslation = null;
@@ -206,6 +248,7 @@ function render(post) {
   renderDigest(cached.digest || null);
   renderExplanation(null);
   renderReadingMode();
+  void restoreReaderPosition(post.id);
 }
 
 function collectionEmpty(message) {
@@ -527,8 +570,11 @@ function downloadMarkdown(filename, content) {
 }
 
 function switchView(viewName) {
+  if (currentView === "reader" && viewName !== "reader") saveCurrentReaderPosition();
+  currentView = viewName;
   document.querySelectorAll(".view").forEach((view) => { view.hidden = view.id !== `${viewName}View`; });
   document.querySelectorAll(".tab-button").forEach((button) => button.classList.toggle("active", button.dataset.view === viewName));
+  if (viewName === "reader" && activePost?.id) void restoreReaderPosition(activePost.id);
 }
 
 function setupCollectionSearch(kind) {
@@ -581,6 +627,10 @@ $("bilingualBlock").addEventListener("mouseup", captureSelection);
 $("bilingualBlock").addEventListener("keyup", captureSelection);
 window.addEventListener("resize", positionSelectionToolbar);
 window.addEventListener("scroll", positionSelectionToolbar, true);
+window.addEventListener("scroll", scheduleReaderPositionSave, { passive: true });
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") saveCurrentReaderPosition();
+});
 $("saveButton").addEventListener("click", async () => {
   if (!activePost) return;
   const button = $("saveButton");

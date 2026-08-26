@@ -118,6 +118,17 @@ test("closes or disables the side panel after leaving X", () => {
   assert.match(background, /XDG_PANEL_LIFECYCLE\.updatePanelForTab/);
 });
 
+test("restores an independent Reader position for each post", () => {
+  const html = read("sidepanel.html");
+  const script = read("sidepanel.js");
+  assert.match(html, /src="reader-state\.js"/);
+  assert.match(script, /READER_POSITIONS_KEY = "xdg_reader_positions"/);
+  assert.match(script, /persistReaderPosition\(activePost\.id, window\.scrollY\)/);
+  assert.match(script, /XDG_READER_STATE\.positionFor/);
+  assert.match(script, /requestId !== readerPositionRequestId/);
+  assert.match(script, /document\.visibilityState === "hidden"/);
+});
+
 test("retires an Explain selection after opening and closing its result", () => {
   const script = read("sidepanel.js");
   assert.match(script, /function clearSelectionState\(\)/);
