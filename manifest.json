@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "minimum_chrome_version": "116",
   "description": "Turn posts, threads, and replies on X into contextual English-learning material.",
-  "permissions": ["sidePanel", "storage"],
+  "permissions": ["sidePanel", "storage", "tabs"],
   "host_permissions": [
     "https://x.com/*",
     "https://twitter.com/*",

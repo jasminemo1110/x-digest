@@ -108,6 +108,16 @@ test("filters Library and Wordbook with accessible local bilingual search", () =
   assert.match(css, /\.search-highlight/);
 });
 
+test("closes or disables the side panel after leaving X", () => {
+  const manifest = JSON.parse(read("manifest.json"));
+  const background = read("background.js");
+  assert.ok(manifest.permissions.includes("tabs"));
+  assert.match(background, /panel-lifecycle\.js/);
+  assert.match(background, /chrome\.tabs\.onUpdated\.addListener/);
+  assert.match(background, /chrome\.tabs\.onActivated\.addListener/);
+  assert.match(background, /XDG_PANEL_LIFECYCLE\.updatePanelForTab/);
+});
+
 test("retires an Explain selection after opening and closing its result", () => {
   const script = read("sidepanel.js");
   assert.match(script, /function clearSelectionState\(\)/);

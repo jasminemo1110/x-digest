@@ -1,6 +1,6 @@
 "use strict";
 
-importScripts("settings.js", "ai-provider.js", "learning-data.js", "ai-actions.js", "interaction-actions.js");
+importScripts("settings.js", "ai-provider.js", "learning-data.js", "ai-actions.js", "interaction-actions.js", "panel-lifecycle.js");
 
 const SAVED_POSTS_KEY = "xdg_saved_posts";
 const WORDBOOK_KEY = "xdg_wordbook";
@@ -221,6 +221,24 @@ async function handleAction(message) {
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  const url = XDG_PANEL_LIFECYCLE.getNavigationUrl(changeInfo, tab);
+  if (!url) return;
+  void XDG_PANEL_LIFECYCLE.updatePanelForTab(chrome, tabId, url, tab.windowId);
+});
+
+chrome.tabs.onActivated.addListener(async ({ tabId, windowId }) => {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    void XDG_PANEL_LIFECYCLE.updatePanelForTab(
+      chrome,
+      tabId,
+      tab.url || tab.pendingUrl,
+      windowId,
+    );
+  } catch (_) {}
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
