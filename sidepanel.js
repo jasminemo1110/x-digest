@@ -569,6 +569,42 @@ function downloadMarkdown(filename, content) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function downloadJson(filename, backup) {
+  const blob = new Blob([XDG_BACKUP_DATA.stringifyBackup(backup)], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function backupFilename(prefix = "x-digest-backup") {
+  return `${prefix}-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+}
+
+async function exportJsonBackup(filename = backupFilename()) {
+  const result = await send("exportJsonBackup");
+  downloadJson(filename, result.backup);
+  return result.backup;
+}
+
+async function restoreJsonFile(file) {
+  if (!file) return;
+  if (file.size > 12 * 1024 * 1024) throw new Error("Choose an X Digest JSON backup smaller than 12 MB.");
+  const backup = XDG_BACKUP_DATA.parseBackup(await file.text());
+  const { library, wordbook } = backup.data;
+  const confirmed = window.confirm(
+    `Merge ${library.length} Library and ${wordbook.length} Wordbook records into this Chrome profile?\n\n` +
+    "Existing matching IDs will be updated. Other local records will remain, and a safety backup will download first.",
+  );
+  if (!confirmed) return;
+  await exportJsonBackup(backupFilename("x-digest-before-restore"));
+  const result = await send("restoreJsonBackup", { backup });
+  await loadCollections();
+  $("backupStatus").textContent = `Restore complete: ${result.libraryCount} Library and ${result.wordbookCount} Wordbook records. API Key was not changed.`;
+}
+
 function switchView(viewName) {
   if (currentView === "reader" && viewName !== "reader") saveCurrentReaderPosition();
   currentView = viewName;
@@ -674,6 +710,22 @@ $("addWordbookButton").addEventListener("click", async () => {
 $("exportLibraryButton").addEventListener("click", () => downloadMarkdown("x-digest-library.md", XDG_LEARNING_DATA.libraryToMarkdown(collections.posts)));
 $("exportWordbookButton").addEventListener("click", () => downloadMarkdown("x-digest-wordbook.md", XDG_LEARNING_DATA.wordbookToMarkdown(collections.entries)));
 $("exportSnapshotButton").addEventListener("click", () => downloadMarkdown("x-digest-complete-snapshot.md", XDG_LEARNING_DATA.completeSnapshotToMarkdown(collections.posts, collections.entries)));
+$("exportJsonButton").addEventListener("click", async () => {
+  $("backupStatus").textContent = "Preparing JSON backup…";
+  try {
+    await exportJsonBackup();
+    $("backupStatus").textContent = "JSON backup downloaded. API Key was not included.";
+  } catch (error) {
+    $("backupStatus").textContent = error.message;
+  }
+});
+$("restoreJsonButton").addEventListener("click", () => $("restoreJsonInput").click());
+$("restoreJsonInput").addEventListener("change", async (event) => {
+  $("backupStatus").textContent = "Checking backup…";
+  try { await restoreJsonFile(event.target.files?.[0]); }
+  catch (error) { $("backupStatus").textContent = error.message; }
+  finally { event.target.value = ""; }
+});
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && changes.xdg_active_post) { switchView("reader"); render(changes.xdg_active_post.newValue); }

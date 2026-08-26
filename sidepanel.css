@@ -118,5 +118,7 @@ dd { margin: 3px 0 0; }
 .wordbook-meaning { font-weight: 650; }
 .wordbook-explanation { font-size: 13px; }
 .card-controls { font-size: 12px; }
-footer { border-top: 1px solid var(--border); margin-top: 24px; padding-top: 12px; text-align: center; }
+footer { align-items: center; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 7px 12px; justify-content: center; margin-top: 24px; padding-top: 12px; text-align: center; }
+footer .text-button { font-size: 12px; }
+#backupStatus { color: var(--muted); flex-basis: 100%; font-size: 11px; min-height: 16px; }
 [hidden] { display: none !important; }

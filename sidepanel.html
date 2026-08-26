@@ -60,7 +60,13 @@
         <p id="wordbookSearchCount" class="search-count" role="status" aria-live="polite"></p>
         <div id="wordbookList" class="collection-list"></div>
       </section>
-      <footer><button id="exportSnapshotButton" class="text-button" type="button">Export complete snapshot</button></footer>
+      <footer>
+        <button id="exportSnapshotButton" class="text-button" type="button">Export complete snapshot</button>
+        <button id="exportJsonButton" class="text-button" type="button">Back up JSON</button>
+        <button id="restoreJsonButton" class="text-button" type="button">Restore JSON</button>
+        <input id="restoreJsonInput" type="file" accept="application/json,.json" hidden>
+        <span id="backupStatus" role="status" aria-live="polite"></span>
+      </footer>
     </main>
     <div id="explanationOverlay" class="explanation-overlay" hidden>
       <section id="explanationCard" class="explanation-dialog" role="dialog" aria-modal="true" aria-labelledby="explanationTitle">
@@ -78,6 +84,7 @@
     <script src="learning-data.js"></script>
     <script src="ui-geometry.js"></script>
     <script src="reader-state.js"></script>
+    <script src="backup-data.js"></script>
     <script src="sidepanel.js"></script>
   </body>
 </html>

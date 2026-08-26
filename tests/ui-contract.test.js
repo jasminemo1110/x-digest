@@ -129,6 +129,21 @@ test("restores an independent Reader position for each post", () => {
   assert.match(script, /document\.visibilityState === "hidden"/);
 });
 
+test("exports and safely merges a lossless JSON learning backup without the API key", () => {
+  const html = read("sidepanel.html");
+  const script = read("sidepanel.js");
+  const background = read("background.js");
+  assert.match(html, /id="exportJsonButton"/);
+  assert.match(html, /id="restoreJsonInput"[^>]*accept="application\/json,\.json"/);
+  assert.match(html, /src="backup-data\.js"/);
+  assert.match(script, /x-digest-before-restore/);
+  assert.match(script, /Existing matching IDs will be updated/);
+  assert.match(script, /API Key was not included/);
+  assert.match(background, /case "exportJsonBackup"/);
+  assert.match(background, /case "restoreJsonBackup"/);
+  assert.doesNotMatch(background.match(/async function readBackupData\(\)[\s\S]*?^}/m)?.[0] || "", /XDG_SETTINGS|apiKey/);
+});
+
 test("retires an Explain selection after opening and closing its result", () => {
   const script = read("sidepanel.js");
   assert.match(script, /function clearSelectionState\(\)/);

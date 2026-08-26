@@ -1,10 +1,45 @@
 "use strict";
 
-importScripts("settings.js", "ai-provider.js", "learning-data.js", "ai-actions.js", "interaction-actions.js", "panel-lifecycle.js");
+importScripts("settings.js", "ai-provider.js", "learning-data.js", "reader-state.js", "backup-data.js", "ai-actions.js", "interaction-actions.js", "panel-lifecycle.js");
 
 const SAVED_POSTS_KEY = "xdg_saved_posts";
 const WORDBOOK_KEY = "xdg_wordbook";
 const AI_CACHE_KEY = "xdg_ai_cache";
+const READER_POSITIONS_KEY = "xdg_reader_positions";
+
+async function readBackupData() {
+  const stored = await chrome.storage.local.get([
+    SAVED_POSTS_KEY,
+    WORDBOOK_KEY,
+    AI_CACHE_KEY,
+    READER_POSITIONS_KEY,
+  ]);
+  return {
+    library: Array.isArray(stored[SAVED_POSTS_KEY]) ? stored[SAVED_POSTS_KEY] : [],
+    wordbook: Array.isArray(stored[WORDBOOK_KEY]) ? stored[WORDBOOK_KEY] : [],
+    aiCache: stored[AI_CACHE_KEY] && typeof stored[AI_CACHE_KEY] === "object" ? stored[AI_CACHE_KEY] : {},
+    readerPositions: stored[READER_POSITIONS_KEY] && typeof stored[READER_POSITIONS_KEY] === "object"
+      ? stored[READER_POSITIONS_KEY]
+      : {},
+  };
+}
+
+async function restoreBackup(backupValue) {
+  const backup = XDG_BACKUP_DATA.validateBackup(backupValue);
+  const current = await readBackupData();
+  const merged = XDG_BACKUP_DATA.mergeBackupData(current, backup.data);
+  await chrome.storage.local.set({
+    [SAVED_POSTS_KEY]: merged.library,
+    [WORDBOOK_KEY]: merged.wordbook,
+    [AI_CACHE_KEY]: merged.aiCache,
+    [READER_POSITIONS_KEY]: merged.readerPositions,
+  });
+  return {
+    libraryCount: merged.library.length,
+    wordbookCount: merged.wordbook.length,
+    cacheCount: Object.keys(merged.aiCache).length,
+  };
+}
 
 async function getSettings() {
   const stored = await chrome.storage.local.get(XDG_SETTINGS.STORAGE_KEY);
@@ -200,6 +235,10 @@ async function handleAction(message) {
         storageQuotaBytes: chrome.storage.local.QUOTA_BYTES || 10 * 1024 * 1024,
       };
     }
+    case "exportJsonBackup":
+      return { success: true, backup: XDG_BACKUP_DATA.createBackup(await readBackupData()) };
+    case "restoreJsonBackup":
+      return { success: true, ...(await restoreBackup(message.backup)) };
     case "deleteSavedPost": {
       const stored = await chrome.storage.local.get(SAVED_POSTS_KEY);
       const posts = (Array.isArray(stored[SAVED_POSTS_KEY]) ? stored[SAVED_POSTS_KEY] : []).filter((post) => (
