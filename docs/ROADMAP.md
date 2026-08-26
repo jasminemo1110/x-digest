@@ -44,15 +44,60 @@ Status: completed for the public-beta scope with automated coverage and manual u
 
 Acceptance: `see post → Digest → translate/explain → save → export Markdown` works without reloading the page.
 
+### P1.5 — Local search, continuity, and recovery
+
+Status: next iteration. Complete this stage before reply-context work begins.
+
+Implement in this order:
+
+1. **Local bilingual search for Library and Wordbook.** Search only data already
+   stored in Chrome: English matching is case-insensitive, Chinese matching is
+   literal, and no AI call is made. Library search covers source text, Chinese
+   translation, author, summary, and key points. Wordbook search covers the saved
+   form, corrected form, meaning, explanation, usage, and examples. Show the
+   result count, highlight matches safely, and support clear and keyboard actions.
+   Search within a loaded Thread belongs to P3 rather than this first search
+   surface.
+2. **Side-panel lifecycle cleanup.** Close or disable X Digest when the active tab
+   leaves `x.com`, and reconcile the panel again on X client-side or tab
+   navigation so stale post content is not left beside unrelated sites.
+3. **Reader position continuity.** Preserve and restore the side-panel reading
+   position for a long post by status ID. A different post starts from its own
+   position, and removed or invalid state degrades to the top of the Reader.
+4. **Lossless JSON backup and validated restore.** Keep Markdown as the
+   human-readable export, while adding a schema-versioned backup that can restore
+   Library, Wordbook, and compatible cached learning data. Validate identity,
+   shape, and limits before writing; never silently replace local data, and create
+   a safety copy before any replacement path.
+5. **P1.5 release polish.** Cover search, navigation, position restoration, and
+   backup failure states with automated tests; verify the unpacked extension on
+   real X pages; then package a documented GitHub release.
+
+Acceptance: a user can find previously saved English or Chinese material without
+AI, leave and return to a long post without losing their place, and recover the
+local learning collection from a validated backup without silent data loss.
+
 ### P2 — Reply context
 
-- Identify the conversation root, direct parent, and current reply.
-- Deduplicate root when it is also the direct parent.
-- Represent `root → direct parent → current reply` as an extension-owned context group with stable post and segment IDs.
-- Feed only `root → direct parent → current reply` to AI.
-- Clearly mark partial or unavailable context; never invent missing content.
-- Preserve handles, URLs, hashtags, code, and significant numbers according to adapter policy.
-- Store the minimal supporting context with saved replies and wordbook records.
+Implement after P1.5, in this order:
+
+1. **Context extraction without AI.** Identify the conversation root, direct
+   parent, and current reply from content already rendered or captured during the
+   current page session. Deduplicate the root when it is also the direct parent.
+2. **Stable context contract.** Represent
+   `root → direct parent → current reply` as an extension-owned context group with
+   stable post and segment IDs. Mark each layer as available, partial, or missing;
+   do not ask AI to reconstruct unseen posts.
+3. **Context-aware learning actions.** Supply only the minimum available context
+   to translation, Explain, and Summarize while keeping the current reply as the
+   primary content. Preserve handles, URLs, hashtags, code, and significant
+   numbers according to adapter policy.
+4. **Context-aware saves and exports.** Store the minimal supporting context with
+   saved replies and Wordbook records, and include it in Markdown and JSON without
+   duplicating the current reply.
+5. **Disclosure and real-page verification.** Show a clear partial-context notice
+   in the side panel and test root replies, nested replies, missing parents,
+   quoted posts, and X client-side navigation on real pages.
 
 Acceptance: a nested reply receives a context-aware explanation, and missing parents are disclosed rather than guessed.
 
@@ -60,6 +105,8 @@ Acceptance: a nested reply receives a context-aware explanation, and missing par
 
 - Capture replies observed during the current conversation-page session.
 - Deduplicate by status ID and exclude root, promotions, and invalid cards.
+- Search English or Chinese text across the currently loaded conversation and
+  move between matching posts without an AI call.
 - Translate or analyze long loaded surfaces in small sequential batches with request-generation protection against late responses.
 - “Summarize loaded replies” with an explicit analyzed count.
 - Summarize consensus, disagreement, representative views, questions, tone, and useful English expressions.
