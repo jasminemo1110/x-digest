@@ -18,6 +18,12 @@ The detailed current baseline, invariants, cache evolution, batching boundary, a
 
 ## V1 delivery stages
 
+## Current stage
+
+`v0.2.0` completes P1 and P1.5 as a usable local-first public beta. The next
+planned product milestone is **P2 — Reply context**. It has not started yet:
+the current `main` branch remains the stable P1.5 baseline for future work.
+
 ### P0 — Independent foundation
 
 - Independent repository and Manifest V3 identity.
@@ -48,36 +54,31 @@ Acceptance: `see post → Digest → translate/explain → save → export Markd
 
 Status: completed for `v0.2.0` with automated coverage and manual unpacked-extension verification of local bilingual search, panel closing outside X, per-post Reader position restoration, JSON export, and merge restoration.
 
-Implement in this order:
+Delivered:
 
-1. **Local bilingual search for Library and Wordbook.** Search only data already
-   stored in Chrome: English matching is case-insensitive, Chinese matching is
-   literal, and no AI call is made. Library search covers source text, Chinese
-   translation, author, summary, and key points. Wordbook search covers the saved
-   form, corrected form, meaning, explanation, usage, and examples. Show the
-   result count, highlight matches safely, and support clear and keyboard actions.
-   Search within a loaded Thread belongs to P3 rather than this first search
-   surface.
-2. **Side-panel lifecycle cleanup.** Close or disable X Digest when the active tab
-   leaves `x.com`, and reconcile the panel again on X client-side or tab
-   navigation so stale post content is not left beside unrelated sites.
-3. **Reader position continuity.** Preserve and restore the side-panel reading
-   position for a long post by status ID. A different post starts from its own
-   position, and removed or invalid state degrades to the top of the Reader.
-4. **Lossless JSON backup and validated restore.** Keep Markdown as the
-   human-readable export, while adding a schema-versioned backup that can restore
-   Library, Wordbook, and compatible cached learning data. Validate identity,
-   shape, and limits before writing; never silently replace local data, and create
-   a safety copy before any replacement path.
-5. **P1.5 release polish.** Cover search, navigation, position restoration, and
-   backup failure states with automated tests; verify the unpacked extension on
-   real X pages; then prepare a documented GitHub release.
+1. **Local bilingual search for Library and Wordbook.** English matching ignores
+   case; Chinese matching is literal; no AI call is made. Library covers source
+   text, translation, author, summary, and key points. Wordbook covers the saved
+   form, corrected form, meaning, explanation, usage, and examples.
+2. **Side-panel lifecycle cleanup.** X Digest closes or disables itself after the
+   active tab leaves X, preventing stale post content beside unrelated sites.
+3. **Reader position continuity.** Each long post keeps an independent Reader
+   position by status ID; invalid or absent state safely starts at the top.
+4. **Lossless JSON backup and validated restore.** Backups preserve Library,
+   Wordbook, compatible cache, and Reader positions, never export the API key,
+   validate before writing, merge by stable ID, and download a safety copy before
+   restore.
+5. **Release polish.** Automated coverage covers the new failure states; the
+   unpacked extension was verified on real X pages before the `v0.2.0` release.
 
 Acceptance: a user can find previously saved English or Chinese material without
 AI, leave and return to a long post without losing their place, and recover the
 local learning collection from a validated backup without silent data loss.
 
 ### P2 — Reply context
+
+Status: next milestone. Start only from the stable `v0.2.0` baseline, keeping
+all P1.5 local search, backup, and recovery contracts intact.
 
 Implement after P1.5, in this order:
 
