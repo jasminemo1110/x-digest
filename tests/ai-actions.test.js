@@ -99,11 +99,27 @@ test("translation preserves stable block IDs for interleaved bilingual reading",
 test("selected Library excerpts get a contextual Chinese translation", () => {
   const request = actions.buildActionRequest("translateExcerpt", POST, "surprisingly fair take");
   assert.equal(request.maxTokens, 500);
-  assert.match(request.messages[0].content, /Translate only the selected English excerpt/);
-  assert.match(request.messages[1].content, /SELECTED_EXCERPT/);
-  assert.deepEqual(request.validate({ translationZh: "出乎意料地公允的看法" }), {
+  assert.match(request.messages[0].content, /Translate exactly and only the selected English excerpt/);
+  assert.match(request.messages[1].content, /CONTEXT_DO_NOT_TRANSLATE/);
+  assert.match(request.messages[1].content, /EXACT_EXCERPT_TO_TRANSLATE/);
+  assert.deepEqual(request.validate({
+    sourceText: "surprisingly fair take",
+    translationZh: "出乎意料地公允的看法",
+  }), {
     translationZh: "出乎意料地公允的看法",
   });
+  assert.throws(
+    () => request.validate({ sourceText: POST.text, translationZh: "这是一个出乎意料地公允的看法。" }),
+    /selected excerpt boundary/,
+  );
+  assert.throws(
+    () => request.validate({ sourceText: "surprisingly fair take", translationZh: "这段过长的译文并不只对应所选择的英文短语，而是错误地继续翻译了周围整整一段上下文内容，甚至还加入了这一段后面的更多句子和并未选中的补充说明。" }),
+    /more than the selected excerpt/,
+  );
+  const repairMessages = request.buildRepairMessages('{"translationZh":"整段错误翻译"}');
+  assert.match(repairMessages[0].content, /exactly and only/);
+  assert.match(repairMessages[1].content, /INVALID_CANDIDATE/);
+  assert.match(repairMessages[1].content, /EXACT_EXCERPT_TO_TRANSLATE/);
   assert.throws(() => actions.buildActionRequest("translateExcerpt", POST, "not present"), /current post/);
 });
 

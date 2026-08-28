@@ -101,7 +101,9 @@ async function callAi(action, postValue, selectedText = "") {
     async (candidate) => {
       const repaired = await requestAiContent(
         settings,
-        XDG_AI_ACTIONS.buildJsonRepairMessages(actionRequest.repairContract, candidate),
+        actionRequest.buildRepairMessages
+          ? actionRequest.buildRepairMessages(candidate)
+          : XDG_AI_ACTIONS.buildJsonRepairMessages(actionRequest.repairContract, candidate),
         { temperature: 0, maxTokens: actionRequest.maxTokens },
       );
       attempts.push(repaired);
