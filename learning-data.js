@@ -160,6 +160,22 @@
     return withoutSelectionPunctuation || cleaned;
   }
 
+  function narrowSelectionBoundaryCorrection(rawValue, learningValue, type) {
+    const raw = normalizeLearningForm(rawValue, type);
+    const learningForm = normalizeLearningForm(learningValue, type);
+    if (!raw || !learningForm || raw === learningForm || learningForm.length < 2) return false;
+    const rawFolded = raw.toLocaleLowerCase("en-US");
+    const learningFolded = learningForm.toLocaleLowerCase("en-US");
+    const atStart = rawFolded.startsWith(learningFolded);
+    const atEnd = rawFolded.endsWith(learningFolded);
+    if (!atStart && !atEnd) return false;
+    const extra = atStart
+      ? raw.slice(learningForm.length)
+      : raw.slice(0, raw.length - learningForm.length);
+    const extraCharacters = [...extra.replace(/[\s"“”‘’()[\]{},.!?;:。！？；：，]/gu, "")];
+    return extraCharacters.length > 0 && extraCharacters.length <= 2;
+  }
+
   function normalizeStoredExplanation(value = {}, fallbackSelection = "") {
     const rawSelectedText = cleanText(
       value.rawSelectedText || value.selectedText || fallbackSelection,
@@ -202,9 +218,16 @@
       "rawSelectedText",
       LIMITS.selectedText,
     );
-    const assessment = cleanText(value.assessment, 30).toLowerCase();
-    if (!ASSESSMENTS.has(assessment)) throw new Error("AI response has an unsupported assessment.");
+    const suppliedAssessment = cleanText(value.assessment, 30).toLowerCase();
+    if (!ASSESSMENTS.has(suppliedAssessment)) throw new Error("AI response has an unsupported assessment.");
     const suppliedLearningForm = requiredText(value.learningForm, "learningForm", LIMITS.selectedText);
+    const suppliedType = normalizeEntryType(value.type || value.entryType, suppliedLearningForm || rawSelectedText);
+    const boundaryCorrection = suppliedAssessment !== "corrected" && narrowSelectionBoundaryCorrection(
+      rawSelectedText,
+      suppliedLearningForm,
+      suppliedType,
+    );
+    const assessment = boundaryCorrection ? "corrected" : suppliedAssessment;
     const unnormalizedLearningForm = assessment === "corrected" ? suppliedLearningForm : rawSelectedText;
     const type = normalizeEntryType(value.type || value.entryType, unnormalizedLearningForm);
     const learningForm = normalizeLearningForm(unnormalizedLearningForm, type);
@@ -218,8 +241,12 @@
       learningForm,
       type,
       assessment,
-      assessmentEn: requiredText(value.assessmentEn, "assessmentEn", LIMITS.explanation),
-      assessmentZh: requiredText(value.assessmentZh, "assessmentZh", LIMITS.explanation),
+      assessmentEn: boundaryCorrection
+        ? `The selection includes an adjacent character; learn “${learningForm}”.`
+        : requiredText(value.assessmentEn, "assessmentEn", LIMITS.explanation),
+      assessmentZh: boundaryCorrection
+        ? `选区边界多带了相邻字符，建议学习“${learningForm}”。`
+        : requiredText(value.assessmentZh, "assessmentZh", LIMITS.explanation),
       pronunciation,
       meaningZh: requiredText(value.meaningZh, "meaningZh", LIMITS.explanation),
       explanationEn: requiredText(value.explanationEn, "explanationEn", LIMITS.explanation),

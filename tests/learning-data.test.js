@@ -129,6 +129,38 @@ test("requires IPA for words and preserves conservative naturalness diagnoses", 
   assert.match(legacy.assessmentZh, /旧记录/);
 });
 
+test("keeps a narrowly corrected selection boundary as the Wordbook learning form", async () => {
+  const explanation = data.validateExplanationPayload({
+    ...EXPLANATION,
+    rawSelectedText: "riptide i",
+    selectedText: "riptide i",
+    learningForm: "riptide",
+    type: "word",
+    assessment: "uncertain",
+    pronunciation: "/ˈrɪpˌtaɪd/",
+  });
+  assert.equal(explanation.assessment, "corrected");
+  assert.equal(explanation.rawSelectedText, "riptide i");
+  assert.equal(explanation.learningForm, "riptide");
+  assert.match(explanation.assessmentZh, /建议学习“riptide”/);
+
+  const entry = await data.createWordbookEntry(POST, explanation);
+  assert.equal(entry.rawSelectedText, "riptide i");
+  assert.equal(entry.learningForm, "riptide");
+
+  const broadRewrite = data.validateExplanationPayload({
+    ...EXPLANATION,
+    rawSelectedText: "the riptide",
+    selectedText: "the riptide",
+    learningForm: "riptide",
+    type: "word",
+    assessment: "uncertain",
+    pronunciation: "/ˈrɪpˌtaɪd/",
+  });
+  assert.equal(broadRewrite.assessment, "uncertain");
+  assert.equal(broadRewrite.learningForm, "the riptide");
+});
+
 test("creates stable wordbook IDs and upgrades duplicate records", async () => {
   const first = await data.createWordbookEntry(POST, EXPLANATION, "2026-08-24T00:00:00.000Z");
   const second = await data.createWordbookEntry(POST, { ...EXPLANATION, meaningZh: "合理的观点", learningForm: "fair take" }, "2026-08-25T00:00:00.000Z");

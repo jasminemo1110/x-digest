@@ -133,3 +133,12 @@ test("explain accepts only text selected from the active post", () => {
   assert.throws(() => actions.buildActionRequest("explain", POST, "missing words"), /current post/);
   assert.throws(() => actions.buildActionRequest("explain", POST, ""), /Select/);
 });
+
+test("tells the model to repair a narrowly over-selected word boundary", () => {
+  const request = actions.buildActionRequest("explain", {
+    ...POST,
+    text: "The AI riptide is already underway.",
+  }, "riptide i");
+  assert.match(request.messages[0].content, /selected "riptide i" in "riptide is"/);
+  assert.match(request.messages[0].content, /learningForm "riptide"/);
+});
