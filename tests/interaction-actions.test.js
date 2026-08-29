@@ -26,3 +26,19 @@ test("opens the side panel before crossing the storage async boundary", async ()
   finishStorage();
   await pending;
 });
+
+test("refreshes only the active matching post when Show More reveals additional text", async () => {
+  let active = POST;
+  const chromeApi = {
+    storage: { local: {
+      get: async () => ({ xdg_active_post: active }),
+      set: async (value) => { active = value.xdg_active_post; },
+    } },
+  };
+
+  const expanded = { ...POST, text: "A useful post. Now with the full article." };
+  assert.equal((await interactions.refreshActivePost(chromeApi, expanded)).updated, true);
+  assert.equal(active.text, expanded.text);
+  assert.equal((await interactions.refreshActivePost(chromeApi, POST)).updated, false);
+  assert.equal((await interactions.refreshActivePost(chromeApi, { ...expanded, id: "456", url: "https://x.com/example/status/456" })).updated, false);
+});

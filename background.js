@@ -125,12 +125,13 @@ async function cachePostResult(postValue, field, value) {
   const post = XDG_LEARNING_DATA.normalizePost(postValue);
   const stored = await chrome.storage.local.get(AI_CACHE_KEY);
   const cache = stored[AI_CACHE_KEY] && typeof stored[AI_CACHE_KEY] === "object" ? stored[AI_CACHE_KEY] : {};
-  cache[post.id] = { ...(cache[post.id] || {}), [field]: value, updatedAt: new Date().toISOString() };
+  const cachedValue = field === "digest" ? { ...value, sourceText: post.text } : value;
+  cache[post.id] = { ...(cache[post.id] || {}), [field]: cachedValue, updatedAt: new Date().toISOString() };
   const recent = Object.entries(cache)
     .sort((left, right) => String(right[1]?.updatedAt || "").localeCompare(String(left[1]?.updatedAt || "")))
     .slice(0, 200);
   await chrome.storage.local.set({ [AI_CACHE_KEY]: Object.fromEntries(recent) });
-  return value;
+  return cachedValue;
 }
 
 async function runCachedAction(action, postValue) {
@@ -138,11 +139,12 @@ async function runCachedAction(action, postValue) {
   const field = action === "translate" ? "translation" : "digest";
   const stored = await chrome.storage.local.get(AI_CACHE_KEY);
   const cached = stored[AI_CACHE_KEY]?.[post.id]?.[field];
-  const cacheIsCurrent = action !== "translate" || XDG_LEARNING_DATA.isAlignedTranslation(cached, post.text);
+  const cacheIsCurrent = action === "translate"
+    ? XDG_LEARNING_DATA.isAlignedTranslation(cached, post.text)
+    : cached?.sourceText === post.text;
   if (cached && cacheIsCurrent) return { value: cached, cached: true };
   const value = await callAi(action, post);
-  await cachePostResult(post, field, value);
-  return { value, cached: false };
+  return { value: await cachePostResult(post, field, value), cached: false };
 }
 
 async function savePost(postValue, extras = {}) {
@@ -297,6 +299,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sender.tab?.id,
       );
       return { success: true };
+    }
+    if (message?.action === "refreshActivePost") {
+      return { success: true, ...(await XDG_INTERACTION_ACTIONS.refreshActivePost(chrome, message.post)) };
     }
     return handleAction(message);
   })()

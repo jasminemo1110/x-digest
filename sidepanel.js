@@ -8,6 +8,8 @@ let selectedText = "";
 let collections = { posts: [], entries: [], cache: {} };
 let readingMode = "original";
 let translationPending = false;
+let translationRequestId = 0;
+let digestRequestId = 0;
 let selectedRange = null;
 let explanationRequestId = 0;
 let excerptSavePending = false;
@@ -45,16 +47,14 @@ async function send(action, payload = {}) {
 }
 
 function renderReadingMode() {
-  const hasTranslation = !!activeTranslation?.translationZh;
   const hasAlignedTranslation = XDG_LEARNING_DATA.isAlignedTranslation(activeTranslation, activePost?.text);
   $("originalBlock").hidden = readingMode !== "original";
-  $("translationBlock").hidden = readingMode !== "chinese" || !hasTranslation;
+  $("translationBlock").hidden = readingMode !== "chinese" || !hasAlignedTranslation;
   $("bilingualBlock").hidden = readingMode !== "bilingual" || !hasAlignedTranslation;
   document.querySelectorAll(".mode-button").forEach((button) => {
     button.classList.toggle("active", button.dataset.mode === readingMode);
   });
-  const translationNeeded = readingMode === "chinese" ? !hasTranslation :
-    readingMode === "bilingual" ? !hasAlignedTranslation : false;
+  const translationNeeded = ["chinese", "bilingual"].includes(readingMode) && !hasAlignedTranslation;
   if (translationNeeded) translateActivePost();
 }
 
@@ -226,6 +226,9 @@ function render(post) {
   saveCurrentReaderPosition();
   explanationRequestId += 1;
   activePost = post || null;
+  translationRequestId += 1;
+  digestRequestId += 1;
+  translationPending = false;
   activeTranslation = null;
   activeDigest = null;
   activeExplanation = null;
@@ -245,7 +248,7 @@ function render(post) {
 
   const cached = collections.cache?.[post.id] || {};
   renderTranslation(cached.translation || null);
-  renderDigest(cached.digest || null);
+  renderDigest(cached.digest?.sourceText === post.text ? cached.digest : null);
   renderExplanation(null);
   renderReadingMode();
   void restoreReaderPosition(post.id);
@@ -441,33 +444,43 @@ async function loadConfigStatus() {
 
 async function translateActivePost() {
   if (!activePost || translationPending) return;
+  const post = activePost;
+  const requestId = ++translationRequestId;
   translationPending = true;
   renderTranslationLoading();
   setStatus("Translating this post…");
   try {
-    const result = await send("translatePost", { post: activePost });
+    const result = await send("translatePost", { post });
+    if (requestId !== translationRequestId || activePost?.id !== post.id || activePost?.text !== post.text) return;
     renderTranslation(result.value);
-    collections.cache[activePost.id] = { ...(collections.cache[activePost.id] || {}), translation: result.value };
+    collections.cache[post.id] = { ...(collections.cache[post.id] || {}), translation: result.value };
     renderReadingMode();
     setStatus(result.cached ? "Loaded cached translation." : "Translation ready.");
   } catch (error) {
+    if (requestId !== translationRequestId || activePost?.id !== post.id || activePost?.text !== post.text) return;
     readingMode = "original";
     renderReadingMode();
     setStatus(error.message, true);
-  } finally { translationPending = false; }
+  } finally {
+    if (requestId === translationRequestId) translationPending = false;
+  }
 }
 
 async function digestActivePost() {
   if (!activePost) return;
+  const post = activePost;
+  const requestId = ++digestRequestId;
   const button = $("digestButton");
   setBusy(button, true, "Summarizing…");
   setStatus("Creating a short summary…");
   try {
-    const result = await send("digestPost", { post: activePost });
+    const result = await send("digestPost", { post });
+    if (requestId !== digestRequestId || activePost?.id !== post.id || activePost?.text !== post.text) return;
     renderDigest(result.value);
-    collections.cache[activePost.id] = { ...(collections.cache[activePost.id] || {}), digest: result.value };
+    collections.cache[post.id] = { ...(collections.cache[post.id] || {}), digest: result.value };
     setStatus(result.cached ? "Loaded cached summary." : "Summary ready.");
   } catch (error) {
+    if (requestId !== digestRequestId || activePost?.id !== post.id || activePost?.text !== post.text) return;
     if (activeDigest) renderDigest(activeDigest, { previous: true });
     setStatus(error.message, true);
   }

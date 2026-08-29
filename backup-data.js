@@ -83,7 +83,9 @@
         throw new Error("Backup contains an invalid AI cache identity.");
       }
       const translation = raw.translation ? validateCachedTranslation(raw.translation) : null;
-      const digest = raw.digest ? XDG_LEARNING_DATA.validateDigestPayload(raw.digest) : null;
+      const digestValue = raw.digest ? XDG_LEARNING_DATA.validateDigestPayload(raw.digest) : null;
+      const digestSourceText = XDG_LEARNING_DATA.cleanText(raw.digest?.sourceText, XDG_LEARNING_DATA.LIMITS.postText);
+      const digest = digestValue && digestSourceText ? { ...digestValue, sourceText: digestSourceText } : null;
       if (!translation && !digest) throw new Error("Backup contains an empty AI cache entry.");
       return [postId, {
         ...(translation ? { translation } : {}),

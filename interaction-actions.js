@@ -16,7 +16,18 @@
     return post;
   }
 
-  const api = { ACTIVE_POST_KEY, openDigestFromUserGesture };
+  async function refreshActivePost(chromeApi, postValue) {
+    const post = root.XDG_LEARNING_DATA.normalizePost(postValue);
+    const stored = await chromeApi.storage.local.get(ACTIVE_POST_KEY);
+    const active = stored?.[ACTIVE_POST_KEY];
+    if (String(active?.id || "") !== post.id || post.text.length <= String(active?.text || "").length) {
+      return { updated: false, post: active || null };
+    }
+    await chromeApi.storage.local.set({ [ACTIVE_POST_KEY]: post });
+    return { updated: true, post };
+  }
+
+  const api = { ACTIVE_POST_KEY, openDigestFromUserGesture, refreshActivePost };
   root.XDG_INTERACTION_ACTIONS = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

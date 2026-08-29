@@ -17,7 +17,7 @@ test("keeps translation behind reading modes and shows Explain only after select
   assert.match(html, /id="explanationCard"[^>]*role="dialog"/);
   assert.match(html, /id="explanationLoading"[^>]*hidden/);
   assert.match(html, /src="ui-geometry\.js"/);
-  assert.match(script, /readingMode === "bilingual" \? !hasAlignedTranslation/);
+  assert.match(script, /\["chinese", "bilingual"\]\.includes\(readingMode\) && !hasAlignedTranslation/);
   assert.match(script, /positionNearSelection/);
   assert.match(script, /renderExplanationLoading\(selectedText\)/);
   assert.match(script, /renderTranslationLoading\(\)/);
@@ -83,6 +83,17 @@ test("re-inserts Digest when X replaces a processed post action bar", () => {
   assert.match(script, /function findDetailRoot\(\)/);
   assert.match(script, /document\.querySelectorAll\('\[data-testid="tweet"\]'\)/);
   assert.match(script, /publishedAt: time\?\.getAttribute\("datetime"\)/);
+  assert.match(script, /action: "refreshActivePost"/);
+  assert.match(script, /const currentPost = extractPost\(article\) \|\| post/);
+});
+
+test("invalidates partial translations and summaries when Show More changes the source text", () => {
+  const panel = read("sidepanel.js");
+  const background = read("background.js");
+  assert.match(panel, /\["chinese", "bilingual"\]\.includes\(readingMode\) && !hasAlignedTranslation/);
+  assert.match(panel, /cached\.digest\?\.sourceText === post\.text/);
+  assert.match(background, /cached\?\.sourceText === post\.text/);
+  assert.match(background, /refreshActivePost/);
 });
 
 test("warns before local storage or collection limits are reached", () => {

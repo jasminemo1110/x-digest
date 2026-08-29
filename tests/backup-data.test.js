@@ -70,6 +70,22 @@ test("skips incompatible legacy AI cache during export without losing learning r
   assert.equal(backup.data.wordbook.length, 1);
 });
 
+test("preserves the source text that keeps a Digest cache tied to one rendered post version", () => {
+  const digest = {
+    summaryZh: "完整摘要。",
+    toneZh: "冷静",
+    keyPointsZh: ["完整要点"],
+    sourceText: POST.text,
+  };
+  const backup = backups.createBackup({
+    library: [],
+    wordbook: [],
+    aiCache: { [POST.id]: { digest, updatedAt: "2026-08-29T00:00:00.000Z" } },
+    readerPositions: {},
+  });
+  assert.deepEqual(backup.data.aiCache[POST.id].digest, digest);
+});
+
 test("rejects unsupported, duplicate, and malformed backup records", () => {
   assert.throws(() => backups.parseBackup("not json"), /not valid JSON/);
   assert.throws(() => backups.validateBackup({ application: "x-digest", schemaVersion: 2, data: {} }), /not supported/);

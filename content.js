@@ -2,6 +2,7 @@
 
 const PROCESSED_ATTRIBUTE = "data-x-digest-ready";
 const POST_CONTAINER_SELECTOR = '[data-testid="tweet"], [data-x-digest-detail-root="true"]';
+const observedPostText = new WeakMap();
 
 function firstOwned(container, selector) {
   return [...container.querySelectorAll(selector)].find((node) => node.closest(POST_CONTAINER_SELECTOR) === container) || null;
@@ -80,6 +81,11 @@ function detailRootSlot(article) {
 function attachDigestButton(article) {
   const post = extractPost(article);
   if (!post) return;
+  const previousText = observedPostText.get(article) || "";
+  observedPostText.set(article, post.text);
+  if (previousText && post.text.length > previousText.length) {
+    globalThis.chrome?.runtime?.sendMessage({ action: "refreshActivePost", post }).catch(() => {});
+  }
   const isDetailRoot = post.id === currentDetailStatusId();
 
   // X can replace an action bar while retaining the surrounding article.
@@ -117,7 +123,8 @@ function attachDigestButton(article) {
       button.title = "Refresh this X tab after reloading X Digest.";
       return;
     }
-    runtime.sendMessage({ action: "openDigest", post }).catch(() => {
+    const currentPost = extractPost(article) || post;
+    runtime.sendMessage({ action: "openDigest", post: currentPost }).catch(() => {
       button.textContent = "Retry";
       button.title = "X Digest could not connect. Refresh this X tab if the extension was reloaded.";
     });
