@@ -66,6 +66,21 @@ test("shows bilingual saved posts and uses a distinct X Digest icon", () => {
   assert.match(icon, /data-symbol="cursor"/);
 });
 
+test("opens saved excerpts at their exact rendered source sentence", () => {
+  const panel = read("sidepanel.js");
+  const background = read("background.js");
+  const content = read("content.js");
+  const contentCss = read("content.css");
+  assert.match(panel, /send\("openLibrarySource", \{ post \}\)/);
+  assert.match(panel, /Open at excerpt/);
+  assert.match(background, /chrome\.storage\.session\.set/);
+  assert.match(background, /chrome\.tabs\.create\(\{ url: post\.url \}\)/);
+  assert.match(content, /function textRangeForExcerpt/);
+  assert.match(content, /scrollIntoView\(\{ behavior: "smooth", block: "center" \}\)/);
+  assert.match(content, /CSS\.highlights\.set\("x-digest-source-focus"/);
+  assert.match(contentCss, /::highlight\(x-digest-source-focus\)/);
+});
+
 test("uses a warm light side panel and a visible inline Digest action", () => {
   const panelCss = read("sidepanel.css");
   const contentCss = read("content.css");

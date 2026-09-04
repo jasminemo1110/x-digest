@@ -343,8 +343,20 @@ function renderCollections() {
     searchContext.hidden = !matchedDigest;
     const controls = document.createElement("div");
     controls.className = "card-controls";
-    const open = document.createElement("a");
-    Object.assign(open, { href: post.url, target: "_blank", rel: "noreferrer", textContent: "Open on X" });
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "text-button";
+    open.textContent = post.kind === "excerpt" ? "Open at excerpt" : "Open on X";
+    open.addEventListener("click", async () => {
+      open.disabled = true;
+      try {
+        await send("openLibrarySource", { post });
+      } catch (error) {
+        setStatus(error.message, true);
+      } finally {
+        open.disabled = false;
+      }
+    });
     controls.append(open, createDeleteButton("deleteSavedPost", { recordId: post.recordId }));
     card.append(author, kind, text, translation, searchContext, controls);
     return card;

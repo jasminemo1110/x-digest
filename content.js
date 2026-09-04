@@ -3,6 +3,86 @@
 const PROCESSED_ATTRIBUTE = "data-x-digest-ready";
 const POST_CONTAINER_SELECTOR = '[data-testid="tweet"], [data-x-digest-detail-root="true"]';
 const observedPostText = new WeakMap();
+let pendingSourceFocus = null;
+let sourceFocusRequestId = "";
+let sourceFocusRequestPending = false;
+
+function normalizedInlineText(value) {
+  return String(value || "").replace(/\s+/gu, " ").trim();
+}
+
+function textRangeForExcerpt(root, focus) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const positions = [];
+  let flattened = "";
+  let node;
+  while ((node = walker.nextNode())) {
+    const value = node.nodeValue || "";
+    for (let offset = 0; offset < value.length; offset += 1) {
+      const character = value[offset];
+      if (/\s/u.test(character)) {
+        if (flattened && !flattened.endsWith(" ")) {
+          flattened += " ";
+          positions.push({ node, offset });
+        }
+      } else {
+        flattened += character;
+        positions.push({ node, offset });
+      }
+    }
+  }
+
+  const excerpt = normalizedInlineText(focus.excerpt);
+  const sourceText = normalizedInlineText(focus.sourceText);
+  let start = -1;
+  if (sourceText) {
+    const sourceStart = flattened.indexOf(sourceText);
+    const excerptOffset = sourceText.indexOf(excerpt);
+    if (sourceStart >= 0 && excerptOffset >= 0) start = sourceStart + excerptOffset;
+  }
+  if (start < 0) start = flattened.indexOf(excerpt);
+  if (start < 0 || !positions[start] || !positions[start + excerpt.length - 1]) return null;
+
+  const range = document.createRange();
+  range.setStart(positions[start].node, positions[start].offset);
+  const end = positions[start + excerpt.length - 1];
+  range.setEnd(end.node, end.offset + 1);
+  return range;
+}
+
+function applySourceFocus() {
+  if (!pendingSourceFocus) return false;
+  const detailRoot = findDetailRoot();
+  if (!detailRoot) return false;
+  const range = textRangeForExcerpt(detailRoot, pendingSourceFocus);
+  if (!range) return false;
+  const anchor = range.startContainer.parentElement || detailRoot;
+  anchor.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (globalThis.CSS?.highlights && typeof globalThis.Highlight === "function") {
+    CSS.highlights.set("x-digest-source-focus", new Highlight(range));
+  }
+  const statusId = pendingSourceFocus.statusId;
+  pendingSourceFocus = null;
+  globalThis.chrome?.runtime?.sendMessage({ action: "clearSourceFocus", statusId }).catch(() => {});
+  return true;
+}
+
+async function requestSourceFocus() {
+  const statusId = currentDetailStatusId();
+  const runtime = globalThis.chrome?.runtime;
+  if (!statusId || !runtime?.sendMessage || sourceFocusRequestPending || sourceFocusRequestId === statusId) return;
+  sourceFocusRequestPending = true;
+  sourceFocusRequestId = statusId;
+  try {
+    const response = await runtime.sendMessage({ action: "getSourceFocus", statusId });
+    pendingSourceFocus = response?.success ? response.focus : null;
+    applySourceFocus();
+  } catch (_) {
+    sourceFocusRequestId = "";
+  } finally {
+    sourceFocusRequestPending = false;
+  }
+}
 
 function firstOwned(container, selector) {
   return [...container.querySelectorAll(selector)].find((node) => node.closest(POST_CONTAINER_SELECTOR) === container) || null;
@@ -137,6 +217,7 @@ function scan() {
   const detailRoot = findDetailRoot();
   if (detailRoot) containers.add(detailRoot);
   containers.forEach(attachDigestButton);
+  if (!applySourceFocus()) void requestSourceFocus();
 }
 
 let scanQueued = false;

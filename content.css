@@ -29,3 +29,8 @@
   margin: 0 0 8px;
   min-height: 34px;
 }
+
+::highlight(x-digest-source-focus) {
+  background: rgba(255, 214, 64, 0.72);
+  color: inherit;
+}

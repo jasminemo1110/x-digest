@@ -6,6 +6,41 @@ const SAVED_POSTS_KEY = "xdg_saved_posts";
 const WORDBOOK_KEY = "xdg_wordbook";
 const AI_CACHE_KEY = "xdg_ai_cache";
 const READER_POSITIONS_KEY = "xdg_reader_positions";
+const SOURCE_FOCUS_KEY = "xdg_source_focus";
+
+async function openLibrarySource(value = {}) {
+  const sourceText = XDG_LEARNING_DATA.cleanText(value.sourceText || value.text, XDG_LEARNING_DATA.LIMITS.postText);
+  const post = XDG_LEARNING_DATA.normalizePost({ ...value, text: sourceText });
+  const excerpt = value.kind === "excerpt"
+    ? XDG_LEARNING_DATA.cleanText(value.text, XDG_LEARNING_DATA.LIMITS.excerptText)
+    : "";
+  if (excerpt) {
+    if (!XDG_LEARNING_DATA.postContainsExcerpt(sourceText, excerpt)) {
+      throw new Error("The saved excerpt no longer matches its source post.");
+    }
+    await chrome.storage.session.set({
+      [SOURCE_FOCUS_KEY]: {
+        statusId: post.id,
+        excerpt,
+        sourceText,
+        expiresAt: Date.now() + 2 * 60 * 1000,
+      },
+    });
+  }
+  await chrome.tabs.create({ url: post.url });
+  return { focusRequested: !!excerpt };
+}
+
+async function getSourceFocus(statusIdValue) {
+  const statusId = XDG_LEARNING_DATA.cleanText(statusIdValue, 40);
+  const stored = await chrome.storage.session.get(SOURCE_FOCUS_KEY);
+  const focus = stored[SOURCE_FOCUS_KEY];
+  if (!focus || focus.expiresAt <= Date.now()) {
+    if (focus) await chrome.storage.session.remove(SOURCE_FOCUS_KEY);
+    return null;
+  }
+  return focus.statusId === statusId ? focus : null;
+}
 
 async function readBackupData() {
   const stored = await chrome.storage.local.get([
@@ -225,6 +260,15 @@ async function handleAction(message) {
       return { success: true, ...(await saveExcerpt(message.post, message.selectedText)) };
     case "saveWordbook":
       return { success: true, ...(await saveWordbook(message.post, message.explanation)) };
+    case "openLibrarySource":
+      return { success: true, ...(await openLibrarySource(message.post)) };
+    case "getSourceFocus":
+      return { success: true, focus: await getSourceFocus(message.statusId) };
+    case "clearSourceFocus": {
+      const focus = await getSourceFocus(message.statusId);
+      if (focus) await chrome.storage.session.remove(SOURCE_FOCUS_KEY);
+      return { success: true };
+    }
     case "getCollections": {
       const [stored, storageBytesInUse] = await Promise.all([
         chrome.storage.local.get([SAVED_POSTS_KEY, WORDBOOK_KEY, AI_CACHE_KEY]),
