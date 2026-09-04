@@ -118,6 +118,27 @@ test("requires IPA for words and preserves conservative naturalness diagnoses", 
     assessment: "as_is",
   }).learningForm, "This is a complete sentence.");
 
+  const surroundedByPunctuation = data.validateExplanationPayload({
+    ...EXPLANATION,
+    rawSelectedText: "—strangely,",
+    selectedText: "—strangely,",
+    learningForm: "strangely",
+    type: "word",
+    pronunciation: "/ˈstreɪndʒli/",
+  });
+  assert.equal(surroundedByPunctuation.rawSelectedText, "—strangely,");
+  assert.equal(surroundedByPunctuation.learningForm, "strangely");
+
+  const hyphenSurrounded = data.validateExplanationPayload({
+    ...EXPLANATION,
+    rawSelectedText: "-strangely,",
+    selectedText: "-strangely,",
+    learningForm: "strangely",
+    type: "word",
+    pronunciation: "/ˈstreɪndʒli/",
+  });
+  assert.equal(hyphenSurrounded.learningForm, "strangely");
+
   const legacy = data.normalizeStoredExplanation({
     selectedText: "quota",
     learningForm: "quota",

@@ -155,8 +155,8 @@
     const cleaned = cleanText(value, LIMITS.selectedText);
     if (!["word", "phrase", "expression"].includes(type)) return cleaned;
     const withoutSelectionPunctuation = cleaned
-      .replace(/^[\s"“”‘’([{]+/u, "")
-      .replace(/[\s"“”‘’)\]}.,!?;:。！？；：，]+$/u, "");
+      .replace(/^[\s"“”‘’([{\-‐‑‒–—―]+/u, "")
+      .replace(/[\s"“”‘’)\]}.,!?;:。！？；：，\-‐‑‒–—―]+$/u, "");
     return withoutSelectionPunctuation || cleaned;
   }
 
@@ -172,7 +172,7 @@
     const extra = atStart
       ? raw.slice(learningForm.length)
       : raw.slice(0, raw.length - learningForm.length);
-    const extraCharacters = [...extra.replace(/[\s"“”‘’()[\]{},.!?;:。！？；：，]/gu, "")];
+    const extraCharacters = [...extra.replace(/[\s"“”‘’()[\]{},.!?;:。！？；：，\-‐‑‒–—―]/gu, "")];
     return extraCharacters.length > 0 && extraCharacters.length <= 2;
   }
 
