@@ -343,19 +343,14 @@ function renderCollections() {
     searchContext.hidden = !matchedDigest;
     const controls = document.createElement("div");
     controls.className = "card-controls";
-    const open = document.createElement("button");
-    open.type = "button";
-    open.className = "text-button";
+    const open = document.createElement("a");
+    Object.assign(open, { href: post.url, target: "_blank", rel: "noreferrer" });
     open.textContent = post.kind === "excerpt" ? "Open at excerpt" : "Open on X";
-    open.addEventListener("click", async () => {
-      open.disabled = true;
-      try {
-        await send("openLibrarySource", { post });
-      } catch (error) {
-        setStatus(error.message, true);
-      } finally {
-        open.disabled = false;
-      }
+    if (post.kind === "excerpt") open.addEventListener("click", () => {
+      send("prepareLibrarySourceFocus", { post }).catch((error) => setStatus(
+        `Opened the source, but precise excerpt positioning is unavailable: ${error.message}`,
+        true,
+      ));
     });
     controls.append(open, createDeleteButton("deleteSavedPost", { recordId: post.recordId }));
     card.append(author, kind, text, translation, searchContext, controls);

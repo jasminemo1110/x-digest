@@ -71,10 +71,12 @@ test("opens saved excerpts at their exact rendered source sentence", () => {
   const background = read("background.js");
   const content = read("content.js");
   const contentCss = read("content.css");
-  assert.match(panel, /send\("openLibrarySource", \{ post \}\)/);
+  assert.match(panel, /document\.createElement\("a"\)/);
+  assert.match(panel, /href: post\.url, target: "_blank"/);
+  assert.match(panel, /send\("prepareLibrarySourceFocus", \{ post \}\)/);
   assert.match(panel, /Open at excerpt/);
   assert.match(background, /chrome\.storage\.session\.set/);
-  assert.match(background, /chrome\.tabs\.create\(\{ url: post\.url \}\)/);
+  assert.doesNotMatch(background, /chrome\.tabs\.create\(\{ url: post\.url \}\)/);
   assert.match(content, /function textRangeForExcerpt/);
   assert.match(content, /scrollIntoView\(\{ behavior: "smooth", block: "center" \}\)/);
   assert.match(content, /CSS\.highlights\.set\("x-digest-source-focus"/);

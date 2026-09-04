@@ -8,27 +8,24 @@ const AI_CACHE_KEY = "xdg_ai_cache";
 const READER_POSITIONS_KEY = "xdg_reader_positions";
 const SOURCE_FOCUS_KEY = "xdg_source_focus";
 
-async function openLibrarySource(value = {}) {
+async function prepareLibrarySourceFocus(value = {}) {
   const sourceText = XDG_LEARNING_DATA.cleanText(value.sourceText || value.text, XDG_LEARNING_DATA.LIMITS.postText);
   const post = XDG_LEARNING_DATA.normalizePost({ ...value, text: sourceText });
   const excerpt = value.kind === "excerpt"
     ? XDG_LEARNING_DATA.cleanText(value.text, XDG_LEARNING_DATA.LIMITS.excerptText)
     : "";
-  if (excerpt) {
-    if (!XDG_LEARNING_DATA.postContainsExcerpt(sourceText, excerpt)) {
-      throw new Error("The saved excerpt no longer matches its source post.");
-    }
-    await chrome.storage.session.set({
-      [SOURCE_FOCUS_KEY]: {
-        statusId: post.id,
-        excerpt,
-        sourceText,
-        expiresAt: Date.now() + 2 * 60 * 1000,
-      },
-    });
+  if (!excerpt || !XDG_LEARNING_DATA.postContainsExcerpt(sourceText, excerpt)) {
+    throw new Error("The saved excerpt no longer matches its source post.");
   }
-  await chrome.tabs.create({ url: post.url });
-  return { focusRequested: !!excerpt };
+  await chrome.storage.session.set({
+    [SOURCE_FOCUS_KEY]: {
+      statusId: post.id,
+      excerpt,
+      sourceText,
+      expiresAt: Date.now() + 2 * 60 * 1000,
+    },
+  });
+  return { focusPrepared: true };
 }
 
 async function getSourceFocus(statusIdValue) {
@@ -260,8 +257,8 @@ async function handleAction(message) {
       return { success: true, ...(await saveExcerpt(message.post, message.selectedText)) };
     case "saveWordbook":
       return { success: true, ...(await saveWordbook(message.post, message.explanation)) };
-    case "openLibrarySource":
-      return { success: true, ...(await openLibrarySource(message.post)) };
+    case "prepareLibrarySourceFocus":
+      return { success: true, ...(await prepareLibrarySourceFocus(message.post)) };
     case "getSourceFocus":
       return { success: true, focus: await getSourceFocus(message.statusId) };
     case "clearSourceFocus": {
