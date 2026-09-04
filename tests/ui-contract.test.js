@@ -73,18 +73,22 @@ test("opens saved excerpts at their exact rendered source sentence", () => {
   const contentCss = read("content.css");
   assert.match(panel, /document\.createElement\("a"\)/);
   assert.match(panel, /href: post\.url, target: "_blank"/);
-  assert.match(panel, /send\("prepareLibrarySourceFocus", \{ post \}\)/);
+  assert.match(panel, /chrome\.storage\.local\.set/);
+  assert.match(panel, /expiresAt: Date\.now\(\) \+ 2 \* 60 \* 1000/);
   assert.match(panel, /Open at excerpt/);
-  assert.match(background, /chrome\.storage\.session\.set/);
+  assert.doesNotMatch(background, /SOURCE_FOCUS_KEY|prepareLibrarySourceFocus|getSourceFocus/);
   assert.doesNotMatch(background, /chrome\.tabs\.create\(\{ url: post\.url \}\)/);
   assert.match(content, /function textRangeForExcerpt/);
   assert.match(content, /function scheduleSourceFocusRetry/);
+  assert.match(content, /storage\.get\(SOURCE_FOCUS_KEY\)/);
+  assert.match(content, /storage\?\.local\?\.remove\(SOURCE_FOCUS_KEY\)/);
   assert.match(content, /Date\.now\(\) \+ 10_000/);
   assert.match(content, /function expandSourcePostIfNeeded/);
   assert.match(content, /showMore\.click\(\)/);
   assert.match(content, /scrollIntoView\(\{ behavior: "smooth", block: "center" \}\)/);
   assert.match(content, /CSS\.highlights\.set\("x-digest-source-focus"/);
   assert.match(content, /selection\?\.addRange\(range\.cloneRange\(\)\)/);
+  assert.match(contentCss, /html\.x-digest-source-focusing ::selection/);
   assert.match(contentCss, /::highlight\(x-digest-source-focus\)/);
 });
 

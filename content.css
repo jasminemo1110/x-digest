@@ -34,3 +34,8 @@
   background: rgba(255, 214, 64, 0.72);
   color: inherit;
 }
+
+html.x-digest-source-focusing ::selection {
+  background: rgba(255, 214, 64, 0.82);
+  color: inherit;
+}

@@ -3,6 +3,7 @@
 const PROCESSED_ATTRIBUTE = "data-x-digest-ready";
 const POST_CONTAINER_SELECTOR = '[data-testid="tweet"], [data-x-digest-detail-root="true"]';
 const observedPostText = new WeakMap();
+const SOURCE_FOCUS_KEY = "xdg_source_focus";
 const SOURCE_FOCUS_RETRY_MS = 250;
 let pendingSourceFocus = null;
 let sourceFocusRequestId = "";
@@ -63,6 +64,34 @@ function scheduleSourceFocusRetry() {
   }, SOURCE_FOCUS_RETRY_MS);
 }
 
+async function requestSourceFocus() {
+  const statusId = currentDetailStatusId();
+  const storage = globalThis.chrome?.storage?.local;
+  if (!statusId || !storage || sourceFocusRequestPending || sourceFocusRequestId === statusId) return;
+  if (!sourceFocusRetryDeadline) sourceFocusRetryDeadline = Date.now() + 10_000;
+  sourceFocusRequestPending = true;
+  sourceFocusRequestId = statusId;
+  try {
+    const stored = await storage.get(SOURCE_FOCUS_KEY);
+    const focus = stored[SOURCE_FOCUS_KEY];
+    if (focus?.expiresAt <= Date.now()) await storage.remove(SOURCE_FOCUS_KEY);
+    const excerpt = typeof focus?.excerpt === "string" ? focus.excerpt.trim().slice(0, 4000) : "";
+    pendingSourceFocus = focus?.statusId === statusId && excerpt
+      ? { statusId, excerpt, sourceText: "" }
+      : null;
+    if (pendingSourceFocus) {
+      sourceFocusExpansionRequested = false;
+      sourceFocusRetryDeadline = Date.now() + 30_000;
+    }
+    if (!applySourceFocus()) scheduleSourceFocusRetry();
+  } catch (_) {
+    sourceFocusRequestId = "";
+    scheduleSourceFocusRetry();
+  } finally {
+    sourceFocusRequestPending = false;
+  }
+}
+
 function expandSourcePostIfNeeded(detailRoot) {
   if (sourceFocusExpansionRequested) return false;
   const showMore = [...detailRoot.querySelectorAll('button, [role="button"]')].find((node) => (
@@ -86,43 +115,19 @@ function applySourceFocus() {
   }
   const anchor = range.startContainer.parentElement || detailRoot;
   anchor.scrollIntoView({ behavior: "smooth", block: "center" });
+  document.documentElement.classList.add("x-digest-source-focusing");
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range.cloneRange());
   if (globalThis.CSS?.highlights && typeof globalThis.Highlight === "function") {
     CSS.highlights.set("x-digest-source-focus", new Highlight(range));
-  } else {
-    const selection = window.getSelection();
-    selection?.removeAllRanges();
-    selection?.addRange(range.cloneRange());
   }
-  const statusId = pendingSourceFocus.statusId;
   pendingSourceFocus = null;
   sourceFocusRetryDeadline = 0;
   if (sourceFocusRetryTimer) clearTimeout(sourceFocusRetryTimer);
   sourceFocusRetryTimer = 0;
-  globalThis.chrome?.runtime?.sendMessage({ action: "clearSourceFocus", statusId }).catch(() => {});
+  globalThis.chrome?.storage?.local?.remove(SOURCE_FOCUS_KEY).catch(() => {});
   return true;
-}
-
-async function requestSourceFocus() {
-  const statusId = currentDetailStatusId();
-  const runtime = globalThis.chrome?.runtime;
-  if (!statusId || !runtime?.sendMessage || sourceFocusRequestPending || sourceFocusRequestId === statusId) return;
-  if (!sourceFocusRetryDeadline) sourceFocusRetryDeadline = Date.now() + 10_000;
-  sourceFocusRequestPending = true;
-  sourceFocusRequestId = statusId;
-  try {
-    const response = await runtime.sendMessage({ action: "getSourceFocus", statusId });
-    pendingSourceFocus = response?.success ? response.focus : null;
-    if (pendingSourceFocus) {
-      sourceFocusExpansionRequested = false;
-      sourceFocusRetryDeadline = Date.now() + 30_000;
-    }
-    if (!applySourceFocus()) scheduleSourceFocusRetry();
-  } catch (_) {
-    sourceFocusRequestId = "";
-    scheduleSourceFocusRetry();
-  } finally {
-    sourceFocusRequestPending = false;
-  }
 }
 
 function firstOwned(container, selector) {

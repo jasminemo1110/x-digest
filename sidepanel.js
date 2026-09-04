@@ -21,6 +21,7 @@ let readerPositionRequestId = 0;
 let suppressReaderPositionSave = false;
 
 const READER_POSITIONS_KEY = "xdg_reader_positions";
+const SOURCE_FOCUS_KEY = "xdg_source_focus";
 
 const $ = (id) => document.getElementById(id);
 
@@ -347,7 +348,13 @@ function renderCollections() {
     Object.assign(open, { href: post.url, target: "_blank", rel: "noreferrer" });
     open.textContent = post.kind === "excerpt" ? "Open at excerpt" : "Open on X";
     if (post.kind === "excerpt") open.addEventListener("click", () => {
-      send("prepareLibrarySourceFocus", { post }).catch((error) => setStatus(
+      chrome.storage.local.set({
+        [SOURCE_FOCUS_KEY]: {
+          statusId: post.id,
+          excerpt: post.text,
+          expiresAt: Date.now() + 2 * 60 * 1000,
+        },
+      }).catch((error) => setStatus(
         `Opened the source, but precise excerpt positioning is unavailable: ${error.message}`,
         true,
       ));
