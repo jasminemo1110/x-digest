@@ -78,8 +78,13 @@ test("opens saved excerpts at their exact rendered source sentence", () => {
   assert.match(background, /chrome\.storage\.session\.set/);
   assert.doesNotMatch(background, /chrome\.tabs\.create\(\{ url: post\.url \}\)/);
   assert.match(content, /function textRangeForExcerpt/);
+  assert.match(content, /function scheduleSourceFocusRetry/);
+  assert.match(content, /Date\.now\(\) \+ 10_000/);
+  assert.match(content, /function expandSourcePostIfNeeded/);
+  assert.match(content, /showMore\.click\(\)/);
   assert.match(content, /scrollIntoView\(\{ behavior: "smooth", block: "center" \}\)/);
   assert.match(content, /CSS\.highlights\.set\("x-digest-source-focus"/);
+  assert.match(content, /selection\?\.addRange\(range\.cloneRange\(\)\)/);
   assert.match(contentCss, /::highlight\(x-digest-source-focus\)/);
 });
 
