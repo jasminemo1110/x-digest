@@ -30,7 +30,8 @@ the current `main` branch remains the stable P1.5 baseline for future work.
 - Requires a confirmed status link and a loaded body; a title or preview alone is not treated as article content.
 - Preserves paragraph breaks and excludes engagement controls and replies from the source text.
 - Retains the 20,000-character limit, with a persistent Reader notice and partial-summary instruction when truncated.
-- Verified selectors on Dan Koe's status `2077513202527773093`; extension reload and end-to-end Chrome verification remain pending.
+- Verified selectors on Dan Koe's status `2077513202527773093`; the user confirmed the Article flow works after trying the updated extension.
+- Summary action and result appear above the reading body so long articles do not require scrolling to the end.
 - Focus-mode `/article/…` pages, image interpretation, and automatic long-article batching remain outside this first increment.
 
 ### P0 — Independent foundation

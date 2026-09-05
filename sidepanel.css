@@ -35,6 +35,7 @@ main { padding: 14px 16px 22px; }
 #postCard { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; padding: 15px; }
 .post-meta, .result-heading, .card-controls, .view-heading { align-items: center; display: flex; justify-content: space-between; gap: 12px; }
 .post-meta { font-size: 13px; }
+.post-meta + .actions { margin-top: 14px; }
 .result-heading > div { align-items: center; display: flex; gap: 8px; }
 .mode-switch { background: var(--surface); border-radius: 999px; display: grid; grid-template-columns: repeat(3, 1fr); margin: 16px 0; padding: 3px; }
 .mode-button { background: transparent; color: var(--muted); padding: 7px 8px; }
