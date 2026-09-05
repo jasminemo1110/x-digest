@@ -74,6 +74,10 @@ test("opens saved excerpts at their exact rendered source sentence", () => {
   assert.match(panel, /document\.createElement\("a"\)/);
   assert.match(panel, /href: post\.url, target: "_blank"/);
   assert.match(panel, /chrome\.storage\.local\.set/);
+  assert.match(panel, /event\.preventDefault\(\)/);
+  assert.match(panel, /await chrome\.storage\.local\.set/);
+  assert.match(panel, /sourceText: post\.sourceText \|\| ""/);
+  assert.match(panel, /await chrome\.tabs\.create\(\{ url: post\.url \}\)/);
   assert.match(panel, /expiresAt: Date\.now\(\) \+ 2 \* 60 \* 1000/);
   assert.match(panel, /Open at excerpt/);
   assert.doesNotMatch(background, /SOURCE_FOCUS_KEY|prepareLibrarySourceFocus|getSourceFocus/);
@@ -81,6 +85,7 @@ test("opens saved excerpts at their exact rendered source sentence", () => {
   assert.match(content, /function textRangeForExcerpt/);
   assert.match(content, /function scheduleSourceFocusRetry/);
   assert.match(content, /storage\.get\(SOURCE_FOCUS_KEY\)/);
+  assert.match(content, /sourceText = typeof focus\?\.sourceText/);
   assert.match(content, /storage\?\.local\?\.remove\(SOURCE_FOCUS_KEY\)/);
   assert.match(content, /Date\.now\(\) \+ 10_000/);
   assert.match(content, /function expandSourcePostIfNeeded/);
@@ -173,18 +178,18 @@ test("keeps long-article language controls outside the scrolling body and transl
   assert.match(html, /class="mode-switch"[\s\S]+id="readingViewport" class="reading-viewport"/);
   assert.match(css, /\.reading-viewport[^}]+overflow-y:\s*auto/);
   assert.match(script, /activeLongSectionId = section\.id;[\s\S]+readingMode = "original"/);
+  assert.match(script, /\$\("readingShell"\)\.scrollIntoView\(\{ behavior: "smooth", block: "start" \}\)/);
   assert.match(script, /send\("translateSection", \{ post, sectionId: section\.id \}\)/);
   assert.doesNotMatch(script, /translate\.textContent = "翻译本节"/);
   assert.doesNotMatch(script, /original\.textContent = post\.text\.slice\(section\.start, section\.end\)/);
 });
 
-test("exports the active digest with its source and available translations", () => {
+test("exports the active digest with summary and source only", () => {
   const html = read("sidepanel.html");
   const script = read("sidepanel.js");
   assert.match(html, /id="exportDigestMarkdown"[^>]*>导出 Markdown</);
   assert.match(script, /XDG_LONG_READING\.articleToMarkdown/);
-  assert.match(script, /sectionTranslations/);
-  assert.match(script, /activeTranslation/);
+  assert.match(script, /Markdown 已导出，包含摘要和完整原文/);
 });
 
 test("exports and safely merges a lossless JSON learning backup without the API key", () => {

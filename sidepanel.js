@@ -261,6 +261,7 @@ function renderDigestSections(value) {
         const target = $("postText").querySelector(`[data-long-section-id="${section.id}"]`);
         if (!target) return;
         $("readingViewport").scrollTo({ top: Math.max(0, target.offsetTop - 12) });
+        $("readingShell").scrollIntoView({ behavior: "smooth", block: "start" });
       });
     });
     item.append(title, synopsis, jump);
@@ -520,17 +521,25 @@ function renderCollections() {
     const open = document.createElement("a");
     Object.assign(open, { href: post.url, target: "_blank", rel: "noreferrer" });
     open.textContent = post.kind === "excerpt" ? "Open at excerpt" : "Open on X";
-    if (post.kind === "excerpt") open.addEventListener("click", () => {
-      chrome.storage.local.set({
-        [SOURCE_FOCUS_KEY]: {
-          statusId: post.id,
-          excerpt: post.text,
-          expiresAt: Date.now() + 2 * 60 * 1000,
-        },
-      }).catch((error) => setStatus(
-        `Opened the source, but precise excerpt positioning is unavailable: ${error.message}`,
-        true,
-      ));
+    if (post.kind === "excerpt") open.addEventListener("click", async (event) => {
+      event.preventDefault();
+      try {
+        await chrome.storage.local.set({
+          [SOURCE_FOCUS_KEY]: {
+            statusId: post.id,
+            excerpt: post.text,
+            sourceText: post.sourceText || "",
+            expiresAt: Date.now() + 2 * 60 * 1000,
+          },
+        });
+      } catch (error) {
+        setStatus(`Precise excerpt positioning is unavailable: ${error.message}`, true);
+      }
+      try {
+        await chrome.tabs.create({ url: post.url });
+      } catch (error) {
+        setStatus(`Could not open the source: ${error.message}`, true);
+      }
     });
     controls.append(open, createDeleteButton("deleteSavedPost", { recordId: post.recordId }));
     card.append(author, kind, text, translation, searchContext, controls);
@@ -772,19 +781,13 @@ function downloadMarkdown(filename, content) {
 
 function exportActiveDigestMarkdown() {
   if (!activePost || !activeDigest) return;
-  const sectionTranslations = collections.cache?.[activePost.id]?.sectionTranslations || {};
-  const markdown = XDG_LONG_READING.articleToMarkdown(
-    activePost,
-    activeDigest,
-    sectionTranslations,
-    activeTranslation,
-  );
+  const markdown = XDG_LONG_READING.articleToMarkdown(activePost, activeDigest);
   const base = XDG_LEARNING_DATA.markdownTitle(activePost.text, 60)
     .replace(/[\\/:*?"<>|]/g, "-")
     .replace(/\s+/g, " ")
     .trim() || `x-article-${activePost.id}`;
   downloadMarkdown(`${base}.md`, markdown);
-  setStatus("Markdown 已导出，包含摘要、原文和当前已生成的译文。");
+  setStatus("Markdown 已导出，包含摘要和完整原文。");
 }
 
 function downloadJson(filename, backup) {

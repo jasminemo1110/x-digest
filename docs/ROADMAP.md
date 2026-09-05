@@ -34,7 +34,7 @@ the current `main` branch remains the stable P1.5 baseline for future work.
 - Summary action and result appear above the reading body so long articles do not require scrolling to the end.
 - Long summaries cover every loaded character in consecutive paragraph-based sections, then synthesize an overview. Summary sections act as a compact navigation index without repeating the source. “回到全文位置” selects and reveals the matching source range.
 - Original / 中文 / 双语 controls stay above an independently scrolling reading body. Switching to 中文 or 双语 translates the currently located section on demand; completed section translations remain cached and source-aligned.
-- Summary results can be exported as Markdown with the overview, section summaries, complete loaded source, and any already-generated source-aligned section translations. Obsidian Clipper integration is intentionally deferred.
+- Summary results can be exported as Markdown with the overview, section summaries, and complete loaded source. Translation export is deferred until it can preserve sentence-level bilingual alignment; Obsidian Clipper integration is also intentionally deferred.
 - Automated range/alignment checks and a local browser preview with simulated AI responses pass. Live provider quality and the refreshed extension flow need user verification.
 - Focus-mode `/article/…` pages, semantic chapter detection, and image interpretation remain outside this increment.
 

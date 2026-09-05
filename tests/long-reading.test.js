@@ -49,24 +49,16 @@ test('summary references survive backup validation and invalid ranges are reject
   assert.throws(() => data.validateDigestPayload(result), /Invalid summary/);
 });
 
-test('Markdown export includes summaries, exact source, and only source-aligned generated translations', async () => {
+test('Markdown export includes summaries and exact source without long-block translations', async () => {
   const normalized = data.normalizePost({ ...post, text: post.text.slice(0, 16000).trim(), authorName: 'Writer' });
   const digest = await reading.summarize(normalized, async action => action === 'sectionDigest'
     ? { titleZh: '小节标题', summaryZh: '小节摘要' }
     : { summaryZh: '全文摘要', toneZh: '理性', keyPointsZh: ['要点'] });
-  const first = digest.sections[0];
-  const sourceText = normalized.text.slice(first.start, first.end);
-  const segments = data.segmentPostText(sourceText).map(segment => ({ ...segment, translationZh: '译文' }));
-  const markdown = reading.articleToMarkdown(normalized, digest, {
-    [first.id]: { sourceText, segments, translationZh: segments.map(() => '译文').join('\n\n') },
-    s999: { sourceText: 'wrong', segments, translationZh: '不应出现' },
-  }, null, '2026-09-05T00:00:00.000Z');
+  const markdown = reading.articleToMarkdown(normalized, digest, '2026-09-05T00:00:00.000Z');
   assert.match(markdown, /# A paragraph/);
   assert.match(markdown, /## Summary\n\n全文摘要/);
   assert.match(markdown, /### 分节摘要/);
   assert.match(markdown, /## Original/);
   assert.ok(markdown.includes(normalized.text));
-  assert.match(markdown, /## 已生成的双语译文/);
-  assert.match(markdown, /译文/);
-  assert.doesNotMatch(markdown, /不应出现/);
+  assert.doesNotMatch(markdown, /## 已生成的双语译文|## 中文|#### 中文/);
 });

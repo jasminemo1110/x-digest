@@ -67,7 +67,7 @@
     return { translationZh: segments.map(s => s.translationZh).join("\n\n"), segments };
   }
 
-  function articleToMarkdown(postValue, digestValue, sectionTranslations = {}, fullTranslation = null, exportedAt = new Date().toISOString()) {
+  function articleToMarkdown(postValue, digestValue, exportedAt = new Date().toISOString()) {
     const post = root.XDG_LEARNING_DATA.normalizePost(postValue);
     const digest = root.XDG_LEARNING_DATA.validateDigestPayload(digestValue);
     const title = root.XDG_LEARNING_DATA.markdownTitle(post.text) || `X Article ${post.id}`;
@@ -92,25 +92,6 @@
       });
     }
     lines.push("## Original", "", post.text);
-
-    const translatedSections = validSections(digest, post.text)
-      ? digest.sections.flatMap((section) => {
-        const sourceText = post.text.slice(section.start, section.end);
-        const value = sectionTranslations?.[section.id];
-        return value?.sourceText === sourceText && root.XDG_LEARNING_DATA.isAlignedTranslation(value, sourceText)
-          ? [{ section, sourceText, value }]
-          : [];
-      })
-      : [];
-    if (translatedSections.length) {
-      lines.push("", "## 已生成的双语译文");
-      translatedSections.forEach(({ section, sourceText, value }) => {
-        lines.push("", `### ${section.titleZh}`, "", "#### Original", "", sourceText,
-          "", "#### 中文", "", value.translationZh);
-      });
-    } else if (root.XDG_LEARNING_DATA.isAlignedTranslation(fullTranslation, post.text)) {
-      lines.push("", "## 中文", "", fullTranslation.translationZh);
-    }
     return `${lines.join("\n").trim()}\n`;
   }
 

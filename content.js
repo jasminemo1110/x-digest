@@ -76,8 +76,9 @@ async function requestSourceFocus() {
     const focus = stored[SOURCE_FOCUS_KEY];
     if (focus?.expiresAt <= Date.now()) await storage.remove(SOURCE_FOCUS_KEY);
     const excerpt = typeof focus?.excerpt === "string" ? focus.excerpt.trim().slice(0, 4000) : "";
+    const sourceText = typeof focus?.sourceText === "string" ? focus.sourceText.trim().slice(0, 100000) : "";
     pendingSourceFocus = focus?.statusId === statusId && excerpt
-      ? { statusId, excerpt, sourceText: "" }
+      ? { statusId, excerpt, sourceText }
       : null;
     if (pendingSourceFocus) {
       sourceFocusExpansionRequested = false;
