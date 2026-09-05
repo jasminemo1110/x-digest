@@ -8,10 +8,12 @@ Use fresh screenshots from the current public-beta build. Do not reuse older dev
 | --- | --- | --- |
 | `overview.png` | A public X post, visible Digest actions, and aligned bilingual reading | Browser chrome and personal navigation are removed |
 | `summary.png` | A long public post beside its structured summary | Browser chrome, personal navigation, and an unrelated provider error are removed |
+| `article-summary-navigation.png` | A rendered Article with sectioned Summary, Markdown export, and source navigation | Keep the annotated end-to-end reading flow readable |
 | `explain-trigger.png` | The floating Explain action next to the active selection | Current Reader card only |
 | `explain-card.png` | Naturalness, IPA, meaning, usage, example, and saved feedback | Complete learning dialog |
 | `excerpt-save.png` | Immediate Library feedback after saving selected text with `N` | Selection and floating feedback only |
 | `library.png` | One excerpt and one whole-post bilingual save | Complete Library panel |
+| `library-excerpt-focus.png` | A Library excerpt reopening its Article source with yellow source highlighting | Keep the Library action and highlighted sentence in one frame |
 | `wordbook.png` | Structured wordbook entries with examples | Complete Wordbook panel |
 
 ## Privacy check before committing
