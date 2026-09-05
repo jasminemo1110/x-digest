@@ -51,8 +51,8 @@ test("ignores article containers owned by quoted posts and still reads ordinary 
 });
 
 test("marks oversized articles through normalization and tells AI the source is partial", () => {
-  const post = data.normalizePost(context.extractPost(fixture({ body: "x".repeat(21000) }).root));
-  assert.equal(post.text.length, 20000);
+  const post = data.normalizePost(context.extractPost(fixture({ body: "x".repeat(110000) }).root));
+  assert.equal(post.text.length, 100000);
   assert.equal(post.textTruncated, true);
   assert.equal(data.normalizePost(post).textTruncated, true);
   assert.match(actions.buildActionRequest("digest", post).messages[0].content, /partial-text summary/);

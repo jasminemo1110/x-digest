@@ -104,7 +104,9 @@ function renderDigest(value, { previous = false } = {}) {
   activeDigest = value || null;
   $("digestCard").hidden = !activeDigest;
   $("digestPrevious").hidden = !activeDigest || !previous;
+  $("digestSections").replaceChildren();
   if (!activeDigest) return;
+  renderDigestSections(activeDigest);
   $("digestSummary").textContent = activeDigest.summaryZh;
   $("digestTone").textContent = activeDigest.toneZh ? `语气：${activeDigest.toneZh}` : "";
   $("digestPoints").replaceChildren(...(activeDigest.keyPointsZh || []).map((point) => {
@@ -112,6 +114,63 @@ function renderDigest(value, { previous = false } = {}) {
     item.textContent = point;
     return item;
   }));
+}
+
+function renderDigestSections(value) {
+  const post = activePost;
+  if (!post || !XDG_LONG_READING.validSections(value, post.text)) return;
+  for (const section of value.sections) {
+    const details = document.createElement("details");
+    details.className = "digest-section";
+    const summary = document.createElement("summary");
+    summary.textContent = section.titleZh;
+    const synopsis = document.createElement("span");
+    synopsis.className = "section-synopsis";
+    synopsis.textContent = section.summaryZh;
+    summary.append(synopsis);
+    const original = document.createElement("p");
+    original.className = "section-original";
+    original.textContent = post.text.slice(section.start, section.end);
+    const translation = document.createElement("p");
+    translation.className = "section-translation";
+    translation.setAttribute("role", "status");
+    const translate = document.createElement("button");
+    translate.type = "button";
+    translate.textContent = "翻译本节";
+    translate.addEventListener("click", async () => {
+      translate.disabled = true;
+      translation.textContent = "正在分批翻译本节…";
+      try {
+        const result = await send("translateSection", { post, sectionId: section.id });
+        translation.textContent = result.value.translationZh;
+        translate.textContent = "本节已翻译";
+      } catch (error) {
+        translation.textContent = error.message;
+        translate.disabled = false;
+        translate.textContent = "重试翻译本节";
+      }
+    });
+    const jump = document.createElement("button");
+    jump.type = "button";
+    jump.className = "secondary";
+    jump.textContent = "回到全文位置";
+    jump.addEventListener("click", () => {
+      readingMode = "original";
+      renderReadingMode();
+      const node = $("postText").firstChild;
+      if (!node) return;
+      const range = document.createRange();
+      range.setStart(node, section.start);
+      range.setEnd(node, section.end);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      const rect = range.getBoundingClientRect();
+      window.scrollBy({ top: rect.top - 80, behavior: "smooth" });
+    });
+    details.append(summary, translate, jump, translation, original);
+    $("digestSections").append(details);
+  }
 }
 
 function assessmentLabel(value) {
@@ -240,9 +299,12 @@ function render(post) {
   if (!activePost) return;
   $("author").textContent = [post.authorName, post.handle].filter(Boolean).join(" ");
   $("postText").textContent = post.text;
+  const isLong = post.text.length > XDG_LONG_READING.THRESHOLD;
+  $("longReadingNotice").hidden = !isLong;
+  $("digestButton").textContent = isLong ? (post.textTruncated ? "生成已载入部分摘要" : "生成全文摘要") : "Summarize";
   $("sourceCoverage").hidden = !post.textTruncated;
   $("sourceCoverage").textContent = post.textTruncated
-    ? "内容超过长度上限，当前仅载入前 20,000 字符；摘要、翻译和收藏仅涵盖这部分。"
+    ? "内容超过长度上限，当前仅载入前 100,000 字符；摘要、翻译和收藏仅涵盖这部分。"
     : "";
   $("sourceLink").href = post.url;
   $("selectionToolbar").hidden = true;
@@ -534,7 +596,8 @@ function captureSelection() {
   const text = XDG_LEARNING_DATA.cleanText(selection?.toString(), XDG_LEARNING_DATA.LIMITS.excerptText);
   if (!text || !selection?.rangeCount) return;
   const range = selection.getRangeAt(0);
-  const inOriginal = $("postText").contains(range.commonAncestorContainer);
+  const inOriginal = $("postText").contains(range.commonAncestorContainer)
+    || [...document.querySelectorAll(".section-original")].some(node => node.contains(range.commonAncestorContainer));
   const inBilingual = $("bilingualBlock").contains(range.commonAncestorContainer);
   const normalizedPost = activePost?.text?.replace(/\s+/g, " ") || "";
   if ((!inOriginal && !inBilingual) || !normalizedPost.includes(text.replace(/\s+/g, " "))) return;
@@ -688,6 +751,8 @@ document.addEventListener("keydown", (event) => {
     saveSelectedExcerpt();
   }
 });
+$("digestSections").addEventListener("mouseup", captureSelection);
+$("digestSections").addEventListener("keyup", captureSelection);
 $("postText").addEventListener("mouseup", captureSelection);
 $("postText").addEventListener("keyup", captureSelection);
 $("bilingualBlock").addEventListener("mouseup", captureSelection);
@@ -702,14 +767,14 @@ $("saveButton").addEventListener("click", async () => {
   if (!activePost) return;
   const button = $("saveButton");
   setBusy(button, true, "Saving…");
-  setStatus("Translating and saving this post…");
+  setStatus(activePost.text.length > XDG_LONG_READING.THRESHOLD ? "正在保存全文…" : "Translating and saving this post…");
   try {
     const result = await send("savePost", { post: activePost });
     if (result.translation) {
       renderTranslation(result.translation);
       collections.cache[activePost.id] = { ...(collections.cache[activePost.id] || {}), translation: result.translation };
     }
-    setStatus(result.translationError
+    setStatus(result.originalOnly ? "全文已保存；可在摘要中按需翻译本节。" : result.translationError
       ? `Post saved, but Chinese translation is unavailable: ${result.translationError}`
       : result.updated ? "Bilingual saved post updated." : "Bilingual post saved locally.",
       !!result.translationError);
@@ -765,3 +830,10 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 Promise.all([loadCollections(), loadConfigStatus()]).then(loadActivePost).catch((error) => setStatus(error.message, true));
+
+chrome.runtime.onMessage.addListener((message) => {
+  if (message?.action === "longReadingProgress" && activePost?.id === message.postId
+      && activePost?.text === message.sourceText && $("digestButton").disabled) {
+    setStatus(message.message);
+  }
+});

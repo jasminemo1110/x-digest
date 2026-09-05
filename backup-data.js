@@ -86,8 +86,38 @@
       const digestValue = raw.digest ? XDG_LEARNING_DATA.validateDigestPayload(raw.digest) : null;
       const digestSourceText = XDG_LEARNING_DATA.cleanText(raw.digest?.sourceText, XDG_LEARNING_DATA.LIMITS.postText);
       const digest = digestValue && digestSourceText ? { ...digestValue, sourceText: digestSourceText } : null;
-      if (!translation && !digest) throw new Error("Backup contains an empty AI cache entry.");
+      const readingCache = {};
+      for (const field of ["translationBatches", "summaryBatches"]) {
+        if (!Array.isArray(raw[field])) continue;
+        readingCache[field] = raw[field].slice(-64).map(item => {
+          const sourceText = XDG_LEARNING_DATA.cleanText(item.sourceText, XDG_LEARNING_DATA.LIMITS.postText);
+          if (!sourceText) throw new Error("Backup contains an empty reading batch.");
+          let result;
+          if (field === "translationBatches") {
+            result = validateCachedTranslation(item.value);
+            if (!XDG_LEARNING_DATA.isAlignedTranslation(result, sourceText)) throw new Error("Invalid reading batch alignment.");
+          } else {
+            result = item.value?.titleZh ? {
+              titleZh: XDG_LEARNING_DATA.cleanText(item.value.titleZh, 100),
+              summaryZh: XDG_LEARNING_DATA.cleanText(item.value.summaryZh, 2000),
+            } : XDG_LEARNING_DATA.validateDigestPayload(item.value);
+            if (!result.summaryZh) throw new Error("Missing reading batch summary.");
+          }
+          return { sourceText, textTruncated: item.textTruncated === true, value: result };
+        });
+      }
+      if (raw.sectionTranslations && typeof raw.sectionTranslations === "object") {
+        readingCache.sectionTranslations = Object.fromEntries(Object.entries(raw.sectionTranslations).slice(0, 30).map(([id, item]) => {
+          if (!/^s[1-9]\d*$/.test(id)) throw new Error("Invalid section identity.");
+          const sourceText = XDG_LEARNING_DATA.cleanText(item.sourceText, XDG_LEARNING_DATA.LIMITS.postText);
+          const result = validateCachedTranslation(item);
+          if (!XDG_LEARNING_DATA.isAlignedTranslation(result, sourceText)) throw new Error("Invalid section alignment.");
+          return [id, { ...result, sourceText }];
+        }));
+      }
+      if (!translation && !digest && !Object.keys(readingCache).length) throw new Error("Backup contains an empty AI cache entry.");
       return [postId, {
+        ...readingCache,
         ...(translation ? { translation } : {}),
         ...(digest ? { digest } : {}),
         updatedAt: cleanTimestamp(raw.updatedAt),

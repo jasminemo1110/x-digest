@@ -23,10 +23,11 @@
         <p id="emptyState" class="empty-state">Choose Digest beside a post or reply on X.</p>
         <article id="postCard" hidden>
           <div class="post-meta"><strong id="author"></strong><a id="sourceLink" target="_blank" rel="noreferrer">Open on X</a></div>
+          <p id="longReadingNotice" class="notice" hidden>这是一篇长文。建议先生成全文摘要，再选择感兴趣的部分阅读和翻译。</p>
           <div class="actions">
             <button id="digestButton" type="button">Summarize</button>
           </div>
-          <section id="digestCard" class="result-card" hidden><div class="result-heading"><h2>Summary</h2><span id="digestPrevious" class="badge previous-result" hidden>上一次结果</span></div><p id="digestSummary"></p><p id="digestTone" class="muted"></p><ul id="digestPoints"></ul></section>
+          <section id="digestCard" class="result-card" hidden><div class="result-heading"><h2>Summary</h2><span id="digestPrevious" class="badge previous-result" hidden>上一次结果</span></div><p id="digestSummary"></p><p id="digestTone" class="muted"></p><ul id="digestPoints"></ul><div id="digestSections"></div></section>
           <p id="status" role="status" aria-live="polite"></p>
           <div class="mode-switch" role="group" aria-label="Reading mode">
             <button class="mode-button active" data-mode="original" type="button">Original</button>
@@ -85,6 +86,7 @@
         <span id="wordbookSaveStatus" class="dialog-status explanation-result-content" role="status" aria-live="polite"></span>
       </section>
     </div>
+    <script src="long-reading.js"></script>
     <script src="learning-data.js"></script>
     <script src="ui-geometry.js"></script>
     <script src="reader-state.js"></script>

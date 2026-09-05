@@ -153,6 +153,23 @@
       };
     }
 
+    if (action === "sectionDigest") {
+      return {
+        maxTokens: 1200,
+        repairContract: '{"titleZh":"string","summaryZh":"string"}',
+        messages: [
+          { role: "system", content: `${shared} Summarize this consecutive section of a longer article in Chinese. Provide a short descriptive title and a substantive summary preserving arguments, qualifications and conclusions. Return {"titleZh":"...","summaryZh":"..."}.` },
+          { role: "user", content: postEvidence(post) },
+        ],
+        validate: (value) => {
+          const titleZh = root.XDG_LEARNING_DATA.cleanText(value.titleZh, 100);
+          const summaryZh = root.XDG_LEARNING_DATA.cleanText(value.summaryZh, 2000);
+          if (!titleZh || !summaryZh) throw new Error("Missing section summary.");
+          return { titleZh, summaryZh };
+        },
+      };
+    }
+
     if (action === "digest") {
       return {
         maxTokens: 900,

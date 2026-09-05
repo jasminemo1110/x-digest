@@ -123,3 +123,10 @@ footer { align-items: center; border-top: 1px solid var(--border); display: flex
 footer .text-button { font-size: 12px; }
 #backupStatus { color: var(--muted); flex-basis: 100%; font-size: 11px; min-height: 16px; }
 [hidden] { display: none !important; }
+
+.digest-section { border-top: 1px solid var(--border); padding: 12px 0; }
+.digest-section summary { cursor: pointer; font-weight: 700; color: var(--accent); }
+.section-original, .section-translation { white-space: pre-wrap; line-height: 1.65; }
+.section-original { border-left: 3px solid var(--border); padding-left: 10px; }
+.digest-section button { margin: 4px 8px 4px 0; }
+.section-synopsis { display: block; color: var(--text); font-weight: 400; line-height: 1.6; margin: 6px 0; }

@@ -1,6 +1,6 @@
 "use strict";
 
-importScripts("settings.js", "ai-provider.js", "learning-data.js", "reader-state.js", "backup-data.js", "ai-actions.js", "interaction-actions.js", "panel-lifecycle.js");
+importScripts("long-reading.js", "settings.js", "ai-provider.js", "learning-data.js", "reader-state.js", "backup-data.js", "ai-actions.js", "interaction-actions.js", "panel-lifecycle.js");
 
 const SAVED_POSTS_KEY = "xdg_saved_posts";
 const WORDBOOK_KEY = "xdg_wordbook";
@@ -134,6 +134,20 @@ async function cachePostResult(postValue, field, value) {
   return cachedValue;
 }
 
+async function requestReadingPart(post, action, partPost) {
+  const field = action === "translate" ? "translationBatches" : "summaryBatches";
+  const stored = await chrome.storage.local.get(AI_CACHE_KEY);
+  const items = stored[AI_CACHE_KEY]?.[post.id]?.[field] || [];
+  const hit = items.find(item => item.sourceText === partPost.text && item.textTruncated === !!partPost.textTruncated);
+  if (hit) return hit.value;
+  const value = await callAi(action, partPost);
+  const latest = await chrome.storage.local.get(AI_CACHE_KEY);
+  const current = latest[AI_CACHE_KEY]?.[post.id]?.[field] || [];
+  await cachePostResult(post, field, [...current.filter(item => item.sourceText !== partPost.text),
+    { sourceText: partPost.text, textTruncated: !!partPost.textTruncated, value }].slice(-64));
+  return value;
+}
+
 async function runCachedAction(action, postValue) {
   const post = XDG_LEARNING_DATA.normalizePost(postValue);
   const field = action === "translate" ? "translation" : "digest";
@@ -142,8 +156,14 @@ async function runCachedAction(action, postValue) {
   const cacheIsCurrent = action === "translate"
     ? XDG_LEARNING_DATA.isAlignedTranslation(cached, post.text)
     : cached?.sourceText === post.text;
-  if (cached && cacheIsCurrent) return { value: cached, cached: true };
-  const value = await callAi(action, post);
+  if (cached && cacheIsCurrent && (action !== "digest" || post.text.length <= XDG_LONG_READING.THRESHOLD || XDG_LONG_READING.validSections(cached, post.text))) return { value: cached, cached: true };
+  const value = action === "digest" && post.text.length > XDG_LONG_READING.THRESHOLD
+    ? await XDG_LONG_READING.summarize(post, (action, part) => requestReadingPart(post, action, part), (message) => {
+      chrome.runtime.sendMessage({ action: "longReadingProgress", postId: post.id, sourceText: post.text, message }).catch(() => {});
+    })
+    : action === "translate" && post.text.length > XDG_LONG_READING.THRESHOLD
+      ? await XDG_LONG_READING.translate(post, (action, part) => requestReadingPart(post, action, part))
+      : await callAi(action, post);
   return { value: await cachePostResult(post, field, value), cached: false };
 }
 
@@ -215,11 +235,31 @@ async function handleAction(message) {
     }
     case "translatePost":
       return { success: true, ...(await runCachedAction("translate", message.post)) };
+    case "translateSection": {
+      const post = XDG_LEARNING_DATA.normalizePost(message.post);
+      const parts = XDG_LONG_READING.split(post.text);
+      const part = parts.find(item => item.id === message.sectionId);
+      if (!part) throw new Error("Unknown article section.");
+      const text = post.text.slice(part.start, part.end);
+      const stored = await chrome.storage.local.get(AI_CACHE_KEY);
+      const existing = stored[AI_CACHE_KEY]?.[post.id]?.sectionTranslations?.[part.id];
+      if (existing?.sourceText === text) return { success: true, value: existing, cached: true };
+      const value = await XDG_LONG_READING.translate({ ...post, text }, (action, part) => requestReadingPart(post, action, part));
+      const latest = await chrome.storage.local.get(AI_CACHE_KEY);
+      const cache = latest[AI_CACHE_KEY] || {};
+      const postCache = cache[post.id] || {};
+      const sectionTranslations = { ...(postCache.sectionTranslations || {}), [part.id]: { ...value, sourceText: text } };
+      await cachePostResult(post, "sectionTranslations", sectionTranslations);
+      return { success: true, value, cached: false };
+    }
     case "digestPost":
       return { success: true, ...(await runCachedAction("digest", message.post)) };
     case "explainSelection":
       return { success: true, value: await callAi("explain", message.post, message.selectedText) };
     case "savePost":
+      if (XDG_LEARNING_DATA.normalizePost(message.post).text.length > XDG_LONG_READING.THRESHOLD) {
+        return { success: true, ...(await savePost(message.post)), originalOnly: true };
+      }
       return { success: true, ...(await savePostWithTranslation(message.post)) };
     case "saveExcerpt":
       return { success: true, ...(await saveExcerpt(message.post, message.selectedText)) };

@@ -2,7 +2,7 @@
   "use strict";
 
   const LIMITS = Object.freeze({
-    postText: 20000,
+    postText: 100000,
     selectedText: 500,
     excerptText: 4000,
     shortText: 1000,
@@ -140,6 +140,18 @@
       summaryZh: requiredText(value.summaryZh, "summaryZh", LIMITS.explanation),
       toneZh: cleanText(value.toneZh, 500),
       keyPointsZh: keyPoints,
+      ...(Array.isArray(value.sections) && typeof value.sourceText === "string" ? {
+        sourceText: cleanText(value.sourceText, LIMITS.postText),
+        sections: value.sections.slice(0, 30).map((section, index) => {
+          if (section.id !== `s${index + 1}` || !Number.isInteger(section.start) || !Number.isInteger(section.end)
+              || section.start < 0 || section.end <= section.start || section.end > value.sourceText.length) {
+            throw new Error("Invalid summary source range.");
+          }
+          return { id: section.id, start: section.start, end: section.end,
+            titleZh: requiredText(section.titleZh, "section title", 100),
+            summaryZh: requiredText(section.summaryZh, "section summary", 2000) };
+        }),
+      } : {}),
     };
   }
 

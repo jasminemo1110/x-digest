@@ -171,9 +171,9 @@ function extractPost(article) {
 
   return {
     ...identity,
-    text: text.slice(0, 20000),
+    text: text.slice(0, 100000),
     ...(articleView ? { contentType: "article" } : {}),
-    ...(text.length > 20000 ? { textTruncated: true } : {}),
+    ...(text.length > 100000 ? { textTruncated: true } : {}),
     authorName: userName?.querySelector("span")?.textContent?.trim()?.slice(0, 200) || "",
     handle: handle.slice(0, 100),
     capturedAt: new Date().toISOString(),
