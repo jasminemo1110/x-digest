@@ -79,4 +79,11 @@ test("centers a matched excerpt in its real scroll container", () => {
   assert.equal(calls.length, 1);
   assert.equal(calls[0].top, 560);
   assert.equal(calls[0].behavior, "auto");
+
+  calls.length = 0;
+  context.scrollSourceRangeIntoView({
+    startContainer: { isConnected: true, parentElement: container },
+    getBoundingClientRect: () => ({ top: 0, bottom: 0, width: 0, height: 0 }),
+  }, "auto");
+  assert.equal(calls.length, 0);
 });

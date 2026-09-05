@@ -108,6 +108,7 @@ function expandSourcePostIfNeeded(detailRoot) {
 function scrollSourceRangeIntoView(range, behavior = "smooth") {
   if (!range?.startContainer?.isConnected) return;
   const rect = range.getBoundingClientRect();
+  if ((!rect.width && !rect.height) || !Number.isFinite(rect.top) || !Number.isFinite(rect.bottom)) return;
   const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
   const margin = Math.min(96, viewportHeight / 4);
   let scrollContainer = range.startContainer.parentElement;
@@ -132,10 +133,15 @@ function scrollSourceRangeIntoView(range, behavior = "smooth") {
   window.scrollBy({ top: rangeCenter - viewportHeight / 2, behavior });
 }
 
-function keepSourceRangeVisible(range) {
+function keepSourceRangeVisible(focus, range) {
   scrollSourceRangeIntoView(range);
   [250, 900, 2000].forEach((delay) => {
-    setTimeout(() => scrollSourceRangeIntoView(range, "auto"), delay);
+    setTimeout(() => {
+      if (currentDetailStatusId() !== focus.statusId) return;
+      const root = findDetailRoot();
+      const refreshedRange = root && textRangeForExcerpt(root, focus);
+      if (refreshedRange) scrollSourceRangeIntoView(refreshedRange, "auto");
+    }, delay);
   });
 }
 
@@ -155,7 +161,7 @@ function applySourceFocus() {
   if (globalThis.CSS?.highlights && typeof globalThis.Highlight === "function") {
     CSS.highlights.set("x-digest-source-focus", new Highlight(range));
   }
-  keepSourceRangeVisible(range.cloneRange());
+  keepSourceRangeVisible({ ...pendingSourceFocus }, range.cloneRange());
   pendingSourceFocus = null;
   sourceFocusRetryDeadline = 0;
   if (sourceFocusRetryTimer) clearTimeout(sourceFocusRetryTimer);

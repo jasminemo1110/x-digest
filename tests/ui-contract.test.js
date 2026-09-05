@@ -95,6 +95,7 @@ test("opens saved excerpts at their exact rendered source sentence", () => {
   assert.match(content, /scrollContainer\.scrollTop \+ delta/);
   assert.match(content, /window\.scrollBy\(\{ top: rangeCenter - viewportHeight \/ 2, behavior \}\)/);
   assert.match(content, /\[250, 900, 2000\]\.forEach/);
+  assert.match(content, /textRangeForExcerpt\(root, focus\)/);
   assert.match(content, /CSS\.highlights\.set\("x-digest-source-focus"/);
   assert.match(content, /selection\?\.addRange\(range\.cloneRange\(\)\)/);
   assert.match(contentCss, /html\.x-digest-source-focusing ::selection/);
