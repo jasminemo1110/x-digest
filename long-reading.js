@@ -67,7 +67,54 @@
     return { translationZh: segments.map(s => s.translationZh).join("\n\n"), segments };
   }
 
-  const api = { THRESHOLD, split, validSections, summarize, translate };
+  function articleToMarkdown(postValue, digestValue, sectionTranslations = {}, fullTranslation = null, exportedAt = new Date().toISOString()) {
+    const post = root.XDG_LEARNING_DATA.normalizePost(postValue);
+    const digest = root.XDG_LEARNING_DATA.validateDigestPayload(digestValue);
+    const title = root.XDG_LEARNING_DATA.markdownTitle(post.text) || `X Article ${post.id}`;
+    const lines = [
+      `# ${title}`,
+      "",
+      `- Author: ${[post.authorName, post.handle].filter(Boolean).join(" ") || "Unknown"}`,
+      `- Source: ${post.url}`,
+      `- Exported: ${exportedAt}`,
+      ...(post.textTruncated ? ["- Coverage: First 100,000 loaded characters only"] : []),
+      "",
+      "## Summary",
+      "",
+      digest.summaryZh,
+      ...(digest.toneZh ? ["", `语气：${digest.toneZh}`] : []),
+      ...(digest.keyPointsZh.length ? ["", ...digest.keyPointsZh.map(point => `- ${point}`)] : []),
+    ];
+    if (validSections(digest, post.text)) {
+      lines.push("", "### 分节摘要", "");
+      digest.sections.forEach((section, index) => {
+        lines.push(`#### ${index + 1}. ${section.titleZh}`, "", section.summaryZh, "");
+      });
+    }
+    lines.push("## Original", "", post.text);
+
+    const translatedSections = validSections(digest, post.text)
+      ? digest.sections.flatMap((section) => {
+        const sourceText = post.text.slice(section.start, section.end);
+        const value = sectionTranslations?.[section.id];
+        return value?.sourceText === sourceText && root.XDG_LEARNING_DATA.isAlignedTranslation(value, sourceText)
+          ? [{ section, sourceText, value }]
+          : [];
+      })
+      : [];
+    if (translatedSections.length) {
+      lines.push("", "## 已生成的双语译文");
+      translatedSections.forEach(({ section, sourceText, value }) => {
+        lines.push("", `### ${section.titleZh}`, "", "#### Original", "", sourceText,
+          "", "#### 中文", "", value.translationZh);
+      });
+    } else if (root.XDG_LEARNING_DATA.isAlignedTranslation(fullTranslation, post.text)) {
+      lines.push("", "## 中文", "", fullTranslation.translationZh);
+    }
+    return `${lines.join("\n").trim()}\n`;
+  }
+
+  const api = { THRESHOLD, split, validSections, summarize, translate, articleToMarkdown };
   root.XDG_LONG_READING = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

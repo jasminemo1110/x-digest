@@ -32,7 +32,9 @@ the current `main` branch remains the stable P1.5 baseline for future work.
 - Reads up to 100,000 characters; longer sources retain an explicit partial-coverage notice. Above 10,000 characters, Reader recommends a sectioned summary and on-demand section translation.
 - Verified selectors on Dan Koe's status `2077513202527773093`; the user confirmed the Article flow works after trying the updated extension.
 - Summary action and result appear above the reading body so long articles do not require scrolling to the end.
-- Long summaries cover every loaded character in consecutive paragraph-based sections, then synthesize an overview. Each expandable section shows exact source text, translation on demand, and a jump to the original range. Translation batches and section summaries are cached for retries; long-post saves preserve the source without requiring translation.
+- Long summaries cover every loaded character in consecutive paragraph-based sections, then synthesize an overview. Summary sections act as a compact navigation index without repeating the source. “回到全文位置” selects and reveals the matching source range.
+- Original / 中文 / 双语 controls stay above an independently scrolling reading body. Switching to 中文 or 双语 translates the currently located section on demand; completed section translations remain cached and source-aligned.
+- Summary results can be exported as Markdown with the overview, section summaries, complete loaded source, and any already-generated source-aligned section translations. Obsidian Clipper integration is intentionally deferred.
 - Automated range/alignment checks and a local browser preview with simulated AI responses pass. Live provider quality and the refreshed extension flow need user verification.
 - Focus-mode `/article/…` pages, semantic chapter detection, and image interpretation remain outside this increment.
 

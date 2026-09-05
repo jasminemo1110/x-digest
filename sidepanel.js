@@ -19,6 +19,8 @@ let currentView = "reader";
 let readerPositionSaveTimer = 0;
 let readerPositionRequestId = 0;
 let suppressReaderPositionSave = false;
+let activeLongSectionId = "";
+let sectionTranslationPending = "";
 
 const READER_POSITIONS_KEY = "xdg_reader_positions";
 const SOURCE_FOCUS_KEY = "xdg_source_focus";
@@ -47,16 +49,135 @@ async function send(action, payload = {}) {
   return response;
 }
 
+function hasLongReadingSections() {
+  return !!activePost && XDG_LONG_READING.validSections(activeDigest, activePost.text);
+}
+
+function longSectionById(sectionId) {
+  return hasLongReadingSections()
+    ? activeDigest.sections.find((section) => section.id === sectionId) || null
+    : null;
+}
+
+function cachedSectionTranslation(section) {
+  const value = collections.cache?.[activePost?.id]?.sectionTranslations?.[section?.id];
+  const sourceText = section && activePost?.text.slice(section.start, section.end);
+  return value?.sourceText === sourceText && XDG_LEARNING_DATA.isAlignedTranslation(value, sourceText)
+    ? value
+    : null;
+}
+
+function visibleLongSectionId() {
+  if (!hasLongReadingSections()) return "";
+  const viewport = $("readingViewport");
+  const nodes = [...$("postText").querySelectorAll("[data-long-section-id]")];
+  const marker = viewport.scrollTop + Math.min(80, viewport.clientHeight / 3);
+  return nodes.reduce((current, node) => node.offsetTop <= marker ? node.dataset.longSectionId : current, "")
+    || activeLongSectionId
+    || activeDigest.sections[0]?.id
+    || "";
+}
+
+function makeOriginalSection(section, active) {
+  const node = document.createElement("section");
+  node.className = "long-reading-section";
+  node.dataset.longSectionId = section.id;
+  node.dataset.active = String(active);
+  node.textContent = activePost.text.slice(section.start, section.end);
+  return node;
+}
+
+function appendTranslatedSection(node, translation, bilingual) {
+  for (const segment of translation.segments) {
+    if (bilingual) {
+      const original = document.createElement("p");
+      original.className = "bilingual-original";
+      original.dataset.originalText = "true";
+      original.textContent = segment.original;
+      node.append(original);
+    }
+    const translated = document.createElement("p");
+    translated.className = "bilingual-translation";
+    translated.textContent = segment.translationZh;
+    node.append(translated);
+  }
+}
+
+function renderLongReadingBody() {
+  const sections = activeDigest.sections;
+  if (!longSectionById(activeLongSectionId)) activeLongSectionId = sections[0]?.id || "";
+  const nodes = sections.map((section) => {
+    const active = section.id === activeLongSectionId;
+    const translation = cachedSectionTranslation(section);
+    const node = makeOriginalSection(section, active);
+    if (readingMode === "original") return node;
+    node.replaceChildren();
+    if (translation) {
+      appendTranslatedSection(node, translation, readingMode === "bilingual");
+    } else {
+      const note = document.createElement("span");
+      note.className = "section-mode-note";
+      note.textContent = sectionTranslationPending === section.id
+        ? "正在翻译这一节…"
+        : active ? "本节尚未翻译。正在准备按需翻译…" : "本节尚未翻译，暂时显示原文。";
+      node.append(note, document.createTextNode(activePost.text.slice(section.start, section.end)));
+    }
+    return node;
+  });
+  $("postText").replaceChildren(...nodes);
+  $("originalBlock").hidden = false;
+  $("translationBlock").hidden = true;
+  $("bilingualBlock").hidden = true;
+  $("originalBlock").querySelector(".block-label").textContent = {
+    original: "Original",
+    chinese: "中文 · 未翻译小节保留原文",
+    bilingual: "双语 · 未翻译小节保留原文",
+  }[readingMode];
+}
+
+async function translateActiveLongSection() {
+  const section = longSectionById(activeLongSectionId || visibleLongSectionId());
+  if (!section || cachedSectionTranslation(section) || sectionTranslationPending) return;
+  const post = activePost;
+  sectionTranslationPending = section.id;
+  renderLongReadingBody();
+  setStatus(`正在翻译“${section.titleZh}”…`);
+  try {
+    const result = await send("translateSection", { post, sectionId: section.id });
+    if (activePost?.id !== post.id || activePost?.text !== post.text) return;
+    const cache = collections.cache[post.id] || {};
+    cache.sectionTranslations = {
+      ...(cache.sectionTranslations || {}),
+      [section.id]: { ...result.value, sourceText: post.text.slice(section.start, section.end) },
+    };
+    collections.cache[post.id] = cache;
+    setStatus(result.cached ? "已载入本节译文。" : "本节翻译完成。");
+  } catch (error) {
+    if (activePost?.id === post.id) setStatus(error.message, true);
+  } finally {
+    if (sectionTranslationPending === section.id) sectionTranslationPending = "";
+    if (activePost?.id === post.id) renderLongReadingBody();
+  }
+}
+
 function renderReadingMode() {
-  const hasAlignedTranslation = XDG_LEARNING_DATA.isAlignedTranslation(activeTranslation, activePost?.text);
-  $("originalBlock").hidden = readingMode !== "original";
-  $("translationBlock").hidden = readingMode !== "chinese" || !hasAlignedTranslation;
-  $("bilingualBlock").hidden = readingMode !== "bilingual" || !hasAlignedTranslation;
+  if (hasLongReadingSections()) {
+    renderLongReadingBody();
+    if (readingMode !== "original" && !cachedSectionTranslation(longSectionById(activeLongSectionId))) {
+      void translateActiveLongSection();
+    }
+  } else {
+    $("originalBlock").querySelector(".block-label").textContent = "Original";
+    const hasAlignedTranslation = XDG_LEARNING_DATA.isAlignedTranslation(activeTranslation, activePost?.text);
+    $("originalBlock").hidden = readingMode !== "original";
+    $("translationBlock").hidden = readingMode !== "chinese" || !hasAlignedTranslation;
+    $("bilingualBlock").hidden = readingMode !== "bilingual" || !hasAlignedTranslation;
+    const translationNeeded = ["chinese", "bilingual"].includes(readingMode) && !hasAlignedTranslation;
+    if (translationNeeded) translateActivePost();
+  }
   document.querySelectorAll(".mode-button").forEach((button) => {
     button.classList.toggle("active", button.dataset.mode === readingMode);
   });
-  const translationNeeded = ["chinese", "bilingual"].includes(readingMode) && !hasAlignedTranslation;
-  if (translationNeeded) translateActivePost();
 }
 
 function renderTranslation(value) {
@@ -114,62 +235,36 @@ function renderDigest(value, { previous = false } = {}) {
     item.textContent = point;
     return item;
   }));
+  renderReadingMode();
 }
 
 function renderDigestSections(value) {
   const post = activePost;
   if (!post || !XDG_LONG_READING.validSections(value, post.text)) return;
   for (const section of value.sections) {
-    const details = document.createElement("details");
-    details.className = "digest-section";
-    const summary = document.createElement("summary");
-    summary.textContent = section.titleZh;
-    const synopsis = document.createElement("span");
+    const item = document.createElement("section");
+    item.className = "digest-section";
+    const title = document.createElement("h3");
+    title.textContent = section.titleZh;
+    const synopsis = document.createElement("p");
     synopsis.className = "section-synopsis";
     synopsis.textContent = section.summaryZh;
-    summary.append(synopsis);
-    const original = document.createElement("p");
-    original.className = "section-original";
-    original.textContent = post.text.slice(section.start, section.end);
-    const translation = document.createElement("p");
-    translation.className = "section-translation";
-    translation.setAttribute("role", "status");
-    const translate = document.createElement("button");
-    translate.type = "button";
-    translate.textContent = "翻译本节";
-    translate.addEventListener("click", async () => {
-      translate.disabled = true;
-      translation.textContent = "正在分批翻译本节…";
-      try {
-        const result = await send("translateSection", { post, sectionId: section.id });
-        translation.textContent = result.value.translationZh;
-        translate.textContent = "本节已翻译";
-      } catch (error) {
-        translation.textContent = error.message;
-        translate.disabled = false;
-        translate.textContent = "重试翻译本节";
-      }
-    });
     const jump = document.createElement("button");
     jump.type = "button";
     jump.className = "secondary";
     jump.textContent = "回到全文位置";
     jump.addEventListener("click", () => {
+      activeLongSectionId = section.id;
       readingMode = "original";
       renderReadingMode();
-      const node = $("postText").firstChild;
-      if (!node) return;
-      const range = document.createRange();
-      range.setStart(node, section.start);
-      range.setEnd(node, section.end);
-      const selection = window.getSelection();
-      selection.removeAllRanges();
-      selection.addRange(range);
-      const rect = range.getBoundingClientRect();
-      window.scrollBy({ top: rect.top - 80, behavior: "smooth" });
+      requestAnimationFrame(() => {
+        const target = $("postText").querySelector(`[data-long-section-id="${section.id}"]`);
+        if (!target) return;
+        $("readingViewport").scrollTo({ top: Math.max(0, target.offsetTop - 12) });
+      });
     });
-    details.append(summary, translate, jump, translation, original);
-    $("digestSections").append(details);
+    item.append(title, synopsis, jump);
+    $("digestSections").append(item);
   }
 }
 
@@ -260,18 +355,18 @@ async function persistReaderPosition(postId, scrollY) {
 
 function saveCurrentReaderPosition() {
   if (!activePost?.id || currentView !== "reader" || suppressReaderPositionSave) return;
-  void persistReaderPosition(activePost.id, window.scrollY);
+  void persistReaderPosition(activePost.id, $("readingViewport").scrollTop);
 }
 
 async function restoreReaderPosition(postId) {
   const requestId = ++readerPositionRequestId;
   suppressReaderPositionSave = true;
-  window.scrollTo(0, 0);
+  $("readingViewport").scrollTop = 0;
   const stored = await chrome.storage.local.get(READER_POSITIONS_KEY);
   const position = XDG_READER_STATE.positionFor(stored[READER_POSITIONS_KEY], postId);
   requestAnimationFrame(() => requestAnimationFrame(() => {
     if (requestId !== readerPositionRequestId || activePost?.id !== postId || currentView !== "reader") return;
-    window.scrollTo(0, position);
+    $("readingViewport").scrollTo({ top: position });
     suppressReaderPositionSave = false;
   }));
 }
@@ -282,6 +377,16 @@ function scheduleReaderPositionSave() {
   readerPositionSaveTimer = setTimeout(saveCurrentReaderPosition, 250);
 }
 
+function trackLongReadingSection() {
+  if (!hasLongReadingSections()) return;
+  const visible = visibleLongSectionId();
+  if (!visible || visible === activeLongSectionId) return;
+  activeLongSectionId = visible;
+  $("postText").querySelectorAll("[data-long-section-id]").forEach((node) => {
+    node.dataset.active = String(node.dataset.longSectionId === activeLongSectionId);
+  });
+}
+
 function render(post) {
   saveCurrentReaderPosition();
   explanationRequestId += 1;
@@ -289,6 +394,8 @@ function render(post) {
   translationRequestId += 1;
   digestRequestId += 1;
   translationPending = false;
+  sectionTranslationPending = "";
+  activeLongSectionId = "";
   activeTranslation = null;
   activeDigest = null;
   activeExplanation = null;
@@ -663,6 +770,23 @@ function downloadMarkdown(filename, content) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function exportActiveDigestMarkdown() {
+  if (!activePost || !activeDigest) return;
+  const sectionTranslations = collections.cache?.[activePost.id]?.sectionTranslations || {};
+  const markdown = XDG_LONG_READING.articleToMarkdown(
+    activePost,
+    activeDigest,
+    sectionTranslations,
+    activeTranslation,
+  );
+  const base = XDG_LEARNING_DATA.markdownTitle(activePost.text, 60)
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim() || `x-article-${activePost.id}`;
+  downloadMarkdown(`${base}.md`, markdown);
+  setStatus("Markdown 已导出，包含摘要、原文和当前已生成的译文。");
+}
+
 function downloadJson(filename, backup) {
   const blob = new Blob([XDG_BACKUP_DATA.stringifyBackup(backup)], { type: "application/json;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -732,9 +856,18 @@ function setupCollectionSearch(kind) {
 document.querySelectorAll(".tab-button").forEach((button) => button.addEventListener("click", () => switchView(button.dataset.view)));
 setupCollectionSearch("library");
 setupCollectionSearch("wordbook");
-document.querySelectorAll(".mode-button").forEach((button) => button.addEventListener("click", () => { readingMode = button.dataset.mode; renderReadingMode(); }));
+document.querySelectorAll(".mode-button").forEach((button) => button.addEventListener("click", () => {
+  const sectionId = activeLongSectionId;
+  readingMode = button.dataset.mode;
+  renderReadingMode();
+  requestAnimationFrame(() => {
+    const target = $("postText").querySelector(`[data-long-section-id="${sectionId}"]`);
+    if (target) $("readingViewport").scrollTo({ top: Math.max(0, target.offsetTop - 12) });
+  });
+}));
 $("settingsButton").addEventListener("click", () => chrome.runtime.openOptionsPage());
 $("digestButton").addEventListener("click", digestActivePost);
+$("exportDigestMarkdown").addEventListener("click", exportActiveDigestMarkdown);
 $("explainButton").addEventListener("click", explainSelection);
 $("closeExplanationButton").addEventListener("click", closeExplanation);
 $("explanationOverlay").addEventListener("click", (event) => {
@@ -751,15 +884,16 @@ document.addEventListener("keydown", (event) => {
     saveSelectedExcerpt();
   }
 });
-$("digestSections").addEventListener("mouseup", captureSelection);
-$("digestSections").addEventListener("keyup", captureSelection);
 $("postText").addEventListener("mouseup", captureSelection);
 $("postText").addEventListener("keyup", captureSelection);
 $("bilingualBlock").addEventListener("mouseup", captureSelection);
 $("bilingualBlock").addEventListener("keyup", captureSelection);
 window.addEventListener("resize", positionSelectionToolbar);
 window.addEventListener("scroll", positionSelectionToolbar, true);
-window.addEventListener("scroll", scheduleReaderPositionSave, { passive: true });
+$("readingViewport").addEventListener("scroll", () => {
+  trackLongReadingSection();
+  scheduleReaderPositionSave();
+}, { passive: true });
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") saveCurrentReaderPosition();
 });

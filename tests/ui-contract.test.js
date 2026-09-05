@@ -160,10 +160,31 @@ test("restores an independent Reader position for each post", () => {
   const script = read("sidepanel.js");
   assert.match(html, /src="reader-state\.js"/);
   assert.match(script, /READER_POSITIONS_KEY = "xdg_reader_positions"/);
-  assert.match(script, /persistReaderPosition\(activePost\.id, window\.scrollY\)/);
+  assert.match(script, /persistReaderPosition\(activePost\.id, \$\("readingViewport"\)\.scrollTop\)/);
   assert.match(script, /XDG_READER_STATE\.positionFor/);
   assert.match(script, /requestId !== readerPositionRequestId/);
   assert.match(script, /document\.visibilityState === "hidden"/);
+});
+
+test("keeps long-article language controls outside the scrolling body and translates the located section", () => {
+  const html = read("sidepanel.html");
+  const script = read("sidepanel.js");
+  const css = read("sidepanel.css");
+  assert.match(html, /class="mode-switch"[\s\S]+id="readingViewport" class="reading-viewport"/);
+  assert.match(css, /\.reading-viewport[^}]+overflow-y:\s*auto/);
+  assert.match(script, /activeLongSectionId = section\.id;[\s\S]+readingMode = "original"/);
+  assert.match(script, /send\("translateSection", \{ post, sectionId: section\.id \}\)/);
+  assert.doesNotMatch(script, /translate\.textContent = "翻译本节"/);
+  assert.doesNotMatch(script, /original\.textContent = post\.text\.slice\(section\.start, section\.end\)/);
+});
+
+test("exports the active digest with its source and available translations", () => {
+  const html = read("sidepanel.html");
+  const script = read("sidepanel.js");
+  assert.match(html, /id="exportDigestMarkdown"[^>]*>导出 Markdown</);
+  assert.match(script, /XDG_LONG_READING\.articleToMarkdown/);
+  assert.match(script, /sectionTranslations/);
+  assert.match(script, /activeTranslation/);
 });
 
 test("exports and safely merges a lossless JSON learning backup without the API key", () => {

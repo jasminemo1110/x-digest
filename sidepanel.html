@@ -27,23 +27,27 @@
           <div class="actions">
             <button id="digestButton" type="button">Summarize</button>
           </div>
-          <section id="digestCard" class="result-card" hidden><div class="result-heading"><h2>Summary</h2><span id="digestPrevious" class="badge previous-result" hidden>上一次结果</span></div><p id="digestSummary"></p><p id="digestTone" class="muted"></p><ul id="digestPoints"></ul><div id="digestSections"></div></section>
+          <section id="digestCard" class="result-card" hidden><div class="result-heading"><div><h2>Summary</h2><span id="digestPrevious" class="badge previous-result" hidden>上一次结果</span></div><button id="exportDigestMarkdown" class="text-button" type="button">导出 Markdown</button></div><p id="digestSummary"></p><p id="digestTone" class="muted"></p><ul id="digestPoints"></ul><div id="digestSections"></div></section>
           <p id="status" role="status" aria-live="polite"></p>
-          <div class="mode-switch" role="group" aria-label="Reading mode">
-            <button class="mode-button active" data-mode="original" type="button">Original</button>
-            <button class="mode-button" data-mode="chinese" type="button">中文</button>
-            <button class="mode-button" data-mode="bilingual" type="button">双语</button>
-          </div>
-          <p id="sourceCoverage" role="status" hidden></p>
-          <div id="originalBlock" class="reading-block"><p class="block-label">Original</p><p id="postText" tabindex="0"></p></div>
-          <div id="translationBlock" class="reading-block" hidden><p class="block-label">中文</p><p id="translationText"></p></div>
-          <div id="bilingualBlock" class="reading-block bilingual-reading" hidden></div>
-          <p id="selectionHint" class="selection-hint">Select English to Explain, or press N to save the selected excerpt.</p>
-          <div id="selectionToolbar" class="selection-toolbar" hidden>
-            <span id="selectionPreview"></span><button id="explainButton" type="button">Explain</button>
-          </div>
-          <div class="actions">
-            <button id="saveButton" class="secondary" type="button">Save post</button>
+          <div id="readingShell" class="reading-shell">
+            <div class="mode-switch" role="group" aria-label="Reading mode">
+              <button class="mode-button active" data-mode="original" type="button">Original</button>
+              <button class="mode-button" data-mode="chinese" type="button">中文</button>
+              <button class="mode-button" data-mode="bilingual" type="button">双语</button>
+            </div>
+            <div id="readingViewport" class="reading-viewport">
+              <p id="sourceCoverage" role="status" hidden></p>
+              <div id="originalBlock" class="reading-block"><p class="block-label">Original</p><div id="postText" class="reading-text" tabindex="0"></div></div>
+              <div id="translationBlock" class="reading-block" hidden><p class="block-label">中文</p><div id="translationText" class="reading-text"></div></div>
+              <div id="bilingualBlock" class="reading-block bilingual-reading" hidden></div>
+              <p id="selectionHint" class="selection-hint">Select English to Explain, or press N to save the selected excerpt.</p>
+              <div id="selectionToolbar" class="selection-toolbar" hidden>
+                <span id="selectionPreview"></span><button id="explainButton" type="button">Explain</button>
+              </div>
+              <div class="actions">
+                <button id="saveButton" class="secondary" type="button">Save post</button>
+              </div>
+            </div>
           </div>
         </article>
       </section>
