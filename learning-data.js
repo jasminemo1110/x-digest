@@ -56,6 +56,9 @@
       recordId: `x-post:${id}`,
       url,
       text,
+      ...(value.contentType === "article" ? { contentType: "article" } : {}),
+      ...(value.textTruncated === true || (typeof value.text === "string" && value.text.length > LIMITS.postText)
+        ? { textTruncated: true } : {}),
       authorName: cleanText(value.authorName, 200),
       handle: cleanText(value.handle, 100),
       publishedAt: publishedAtFromStatusId(id) || cleanText(value.publishedAt, 100),

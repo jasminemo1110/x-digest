@@ -240,6 +240,10 @@ function render(post) {
   if (!activePost) return;
   $("author").textContent = [post.authorName, post.handle].filter(Boolean).join(" ");
   $("postText").textContent = post.text;
+  $("sourceCoverage").hidden = !post.textTruncated;
+  $("sourceCoverage").textContent = post.textTruncated
+    ? "内容超过长度上限，当前仅载入前 20,000 字符；摘要、翻译和收藏仅涵盖这部分。"
+    : "";
   $("sourceLink").href = post.url;
   $("selectionToolbar").hidden = true;
   $("selectionToolbar").style.removeProperty("left");

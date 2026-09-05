@@ -155,7 +155,13 @@ function statusIdentity(article) {
 
 function extractPost(article) {
   const identity = statusIdentity(article);
-  const text = firstOwned(article, '[data-testid="tweetText"]')?.innerText?.trim();
+  const articleView = firstOwned(article, '[data-testid="twitterArticleReadView"]');
+  const title = articleView && firstOwned(article, '[data-testid="twitter-article-title"]')?.innerText?.trim();
+  const body = articleView && firstOwned(article, '[data-testid="twitterArticleRichTextView"]')?.innerText?.trim();
+  // A preview/title alone is not article evidence. Wait for the rendered body.
+  const text = articleView
+    ? (body ? [title, body].filter(Boolean).join("\n\n") : "")
+    : firstOwned(article, '[data-testid="tweetText"]')?.innerText?.trim();
   if (!identity || !text) return null;
 
   const userName = firstOwned(article, '[data-testid="User-Name"]');
@@ -166,6 +172,8 @@ function extractPost(article) {
   return {
     ...identity,
     text: text.slice(0, 20000),
+    ...(articleView ? { contentType: "article" } : {}),
+    ...(text.length > 20000 ? { textTruncated: true } : {}),
     authorName: userName?.querySelector("span")?.textContent?.trim()?.slice(0, 200) || "",
     handle: handle.slice(0, 100),
     capturedAt: new Date().toISOString(),
@@ -195,7 +203,9 @@ function findDetailRoot() {
 function detailRootSlot(article) {
   let slot = firstOwned(article, ".x-digest-detail-slot");
   if (slot) return slot;
-  const text = firstOwned(article, '[data-testid="tweetText"]');
+  const text = firstOwned(article, '[data-testid="twitter-article-title"]')
+    || firstOwned(article, '[data-testid="twitterArticleRichTextView"]')
+    || firstOwned(article, '[data-testid="tweetText"]');
   if (!text?.parentElement) return null;
   slot = document.createElement("div");
   slot.className = "x-digest-detail-slot";

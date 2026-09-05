@@ -24,6 +24,15 @@ The detailed current baseline, invariants, cache evolution, batching boundary, a
 planned product milestone is **P2 — Reply context**. It has not started yet:
 the current `main` branch remains the stable P1.5 baseline for future work.
 
+### Article reading on status pages
+
+- Reads the rendered Article title and rich-text body on `/status/…` pages into the existing Reader, Summary, and learning flows.
+- Requires a confirmed status link and a loaded body; a title or preview alone is not treated as article content.
+- Preserves paragraph breaks and excludes engagement controls and replies from the source text.
+- Retains the 20,000-character limit, with a persistent Reader notice and partial-summary instruction when truncated.
+- Verified selectors on Dan Koe's status `2077513202527773093`; extension reload and end-to-end Chrome verification remain pending.
+- Focus-mode `/article/…` pages, image interpretation, and automatic long-article batching remain outside this first increment.
+
 ### P0 — Independent foundation
 
 - Independent repository and Manifest V3 identity.
@@ -133,7 +142,7 @@ Acceptance: automated checks pass and the extension is manually verified on an X
 - Whole-timeline, Likes, profile-history, or account-wide collection.
 - Automatically opening every reply branch.
 - Claiming a complete reply count.
-- X Articles body extraction.
+- X Articles focus-mode extraction and automatic long-article batching.
 - Image OCR or understanding, video transcription, or Spaces transcription.
 - Scheduled digests, account monitoring, cloud sync, or direct Vault writes.
 
@@ -143,7 +152,7 @@ Acceptance: automated checks pass and the extension is manually verified on an X
 2. Optional bookmark synchronization after reassessing OAuth, API access, cost, and permissions.
 3. User-triggered completion of partially loaded Threads.
 4. Paginated reply collection with exact coverage and rate-limit reporting.
-5. X Articles extraction and structured bilingual reading.
+5. Extend X Articles support to focus mode and long-article translation batching.
 6. Image OCR, multimodal explanation, and video/audio transcription.
 7. Daily or weekly digests for selected accounts or Lists.
 8. Review states, spaced repetition, CSV, and Anki export.
