@@ -105,6 +105,40 @@ function expandSourcePostIfNeeded(detailRoot) {
   return true;
 }
 
+function scrollSourceRangeIntoView(range, behavior = "smooth") {
+  if (!range?.startContainer?.isConnected) return;
+  const rect = range.getBoundingClientRect();
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+  const margin = Math.min(96, viewportHeight / 4);
+  let scrollContainer = range.startContainer.parentElement;
+  while (scrollContainer && scrollContainer !== document.documentElement) {
+    const overflowY = getComputedStyle(scrollContainer).overflowY;
+    if (/(auto|scroll|overlay)/u.test(overflowY) && scrollContainer.scrollHeight > scrollContainer.clientHeight) break;
+    scrollContainer = scrollContainer.parentElement;
+  }
+  const containerRect = scrollContainer && scrollContainer !== document.documentElement
+    ? scrollContainer.getBoundingClientRect()
+    : null;
+  const visibleTop = Math.max(margin, (containerRect?.top || 0) + 16);
+  const visibleBottom = Math.min(viewportHeight - margin, containerRect ? containerRect.bottom - 16 : viewportHeight);
+  if (rect.top >= visibleTop && rect.bottom <= visibleBottom) return;
+
+  const rangeCenter = rect.top + rect.height / 2;
+  if (scrollContainer && scrollContainer !== document.documentElement) {
+    const delta = rangeCenter - (containerRect.top + scrollContainer.clientHeight / 2);
+    scrollContainer.scrollTo({ top: Math.max(0, scrollContainer.scrollTop + delta), behavior });
+    return;
+  }
+  window.scrollBy({ top: rangeCenter - viewportHeight / 2, behavior });
+}
+
+function keepSourceRangeVisible(range) {
+  scrollSourceRangeIntoView(range);
+  [250, 900, 2000].forEach((delay) => {
+    setTimeout(() => scrollSourceRangeIntoView(range, "auto"), delay);
+  });
+}
+
 function applySourceFocus() {
   if (!pendingSourceFocus) return false;
   const detailRoot = findDetailRoot();
@@ -114,8 +148,6 @@ function applySourceFocus() {
     expandSourcePostIfNeeded(detailRoot);
     return false;
   }
-  const anchor = range.startContainer.parentElement || detailRoot;
-  anchor.scrollIntoView({ behavior: "smooth", block: "center" });
   document.documentElement.classList.add("x-digest-source-focusing");
   const selection = window.getSelection();
   selection?.removeAllRanges();
@@ -123,6 +155,7 @@ function applySourceFocus() {
   if (globalThis.CSS?.highlights && typeof globalThis.Highlight === "function") {
     CSS.highlights.set("x-digest-source-focus", new Highlight(range));
   }
+  keepSourceRangeVisible(range.cloneRange());
   pendingSourceFocus = null;
   sourceFocusRetryDeadline = 0;
   if (sourceFocusRetryTimer) clearTimeout(sourceFocusRetryTimer);

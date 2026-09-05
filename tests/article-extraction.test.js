@@ -57,3 +57,26 @@ test("marks oversized articles through normalization and tells AI the source is 
   assert.equal(data.normalizePost(post).textTruncated, true);
   assert.match(actions.buildActionRequest("digest", post).messages[0].content, /partial-text summary/);
 });
+
+test("centers a matched excerpt in its real scroll container", () => {
+  const calls = [];
+  const documentElement = { clientHeight: 800 };
+  const container = {
+    parentElement: documentElement,
+    scrollHeight: 2400,
+    clientHeight: 600,
+    scrollTop: 50,
+    getBoundingClientRect: () => ({ top: 100, bottom: 700 }),
+    scrollTo: (options) => calls.push(options),
+  };
+  context.document = { documentElement };
+  context.window = { innerHeight: 800, scrollBy: (options) => calls.push(options) };
+  context.getComputedStyle = () => ({ overflowY: "auto" });
+  context.scrollSourceRangeIntoView({
+    startContainer: { isConnected: true, parentElement: container },
+    getBoundingClientRect: () => ({ top: 900, bottom: 920, height: 20 }),
+  }, "auto");
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].top, 560);
+  assert.equal(calls[0].behavior, "auto");
+});
