@@ -196,6 +196,16 @@ The extension uses Manifest V3 and has no build step. Load the repository root t
 
 Automated tests do not guarantee compatibility with X's live DOM. Changes to post detection or injection should also be checked on the X home timeline, post detail page, long posts, and visible replies. Public screenshot guidance lives in the [release image checklist](docs/screenshots/README.md).
 
+## The Digest family
+
+From videos and social feeds to your own notes, these projects turn what you are already reading or watching into material you can understand, keep, and learn from:
+
+- [YouTube Digest · my fork](https://github.com/jasminemo1110/youtube-digest): learn from video transcripts, bilingual overviews, and contextual explanations. Forked from [Zara Zhang’s original project](https://github.com/zarazhangrui/youtube-digest).
+- [X Digest](https://github.com/jasminemo1110/x-digest): read posts and Articles bilingually, summarize long reads, explain expressions, and save excerpts.
+- [Note Digest](https://github.com/jasminemo1110/note-digest): read English Markdown in Obsidian, explain words in context, and save vocabulary and quotes directly to the original note or a separate learning note. It is currently a development build; see its README for installation and API key setup.
+
+Each project installs and runs independently. Learning records and API keys are not automatically shared. If your articles already live in Obsidian, you can use Note Digest directly.
+
 ## Acknowledgements
 
 X Digest is grateful to [Zara Zhang's YouTube Digest](https://github.com/zarazhangrui/youtube-digest), whose MIT-licensed architecture and prompt design provided the starting point for this project. See [Third-Party Notices](THIRD_PARTY_NOTICES.md) for the preserved upstream license notice.

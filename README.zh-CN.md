@@ -196,6 +196,16 @@ npm test
 
 自动化测试不等于对 X 实时 DOM 的兼容保证。修改推文识别或按钮注入逻辑后，还需要在 X 首页、推文详情页、长推文和可见回复中手动验证。公开截图规范请查看[发布图片检查清单](docs/screenshots/README.md)。
 
+## Digest 系列
+
+从视频、信息流到自己的笔记仓库，Digest 系列希望把正在看的内容变成可以理解、积累和反复学习的材料：
+
+- [YouTube Digest · 我的 Fork](https://github.com/jasminemo1110/youtube-digest)：结合视频字幕、双语概览和语境解释整理学习记录，基于 [Zara Zhang 的原始项目](https://github.com/zarazhangrui/youtube-digest) Fork。
+- [X Digest](https://github.com/jasminemo1110/x-digest)：在 X 推文和 Article 中双语阅读、总结长文、学习表达与收藏摘录。
+- [Note Digest](https://github.com/jasminemo1110/note-digest)：在 Obsidian 中阅读英文 Markdown，选词解释、收藏金句，并直接保存到文末或独立学习笔记。当前为开发版，安装与 API Key 配置见其 README。
+
+三个项目分别安装、独立运行，目前不自动同步学习记录或共用密钥。已有文章保存在 Obsidian 时，可以直接使用 Note Digest。
+
 ## 致谢
 
 感谢 [Zara Zhang 的 YouTube Digest](https://github.com/zarazhangrui/youtube-digest)。它的 MIT 开源架构与提示词设计为本项目提供了起点。完整保留的上游许可声明请查看[第三方声明](THIRD_PARTY_NOTICES.md)。
